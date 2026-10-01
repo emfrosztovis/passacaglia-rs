@@ -1,7 +1,7 @@
 # Porting `musicxml` — design report
 
 Status: in progress (first commit ports only the domain-independent pieces; see
-"Temporary strategy" below).
+"Strategy (revised)" below).
 
 ## 1. Goal and current shape of the source
 
@@ -28,7 +28,7 @@ report addresses.
 ## 2. Dependency inversion
 
 `musicxml` should be an **adapter** that depends on the domain, not the other
-way around. Recommended layering:
+way around. Layering (for now):
 
 ```
 common
@@ -36,21 +36,24 @@ common
 core         unbiased common denominator: pitch systems, pitch, interval,
              scale, tuning, and generic *structure* (Container/Cursor/…)
   ↑
-tonal        Western/common-practice domain model: Note, Measure, Voice,
-             Score, Chord, Harmony, Clef, NonHarmonicType
+species-counterpoint   domain model (Note, Measure, Voice, Score, Chord,
+                       Harmony, Clef, NonHarmonicType) + solver, for now
   ↑
-musicxml     concrete adapter: `to_mxl(&tonal::Score) -> String`
-  ↑
-species-counterpoint / application
+musicxml     concrete adapter: `impl ToMxl for Score` / `to_mxl(&Score)`
 ```
+
+A standalone general/`tonal` domain crate is a *postponed* design problem (see
+`species-counterpoint-approach.md` §6); `musicxml` imports
+`species-counterpoint` for now.
 
 Consequences:
 
-- `musicxml` becomes concrete functions over `tonal`'s concrete types; the
+- `musicxml` becomes concrete functions over the domain's concrete types; the
   `...Like` traits are deleted (they existed only to decouple the TS package
   from a specific score implementation).
-- `Clef` and `NonHarmonicType` are domain concepts and move to `tonal` (for
-  now they stay in `musicxml` to match the TS source; see §6).
+- `Clef` and `NonHarmonicType` are domain concepts and move to
+  `species-counterpoint` (for now `Clef` still lives in `musicxml` to match the
+  TS source; see §6).
 - `pitch()` is bound to `std_hept::Pitch`, not generic over a pitch system:
   MusicXML is Western staff notation and cannot represent, say, a 17-tone
   system. Don't pretend otherwise.
@@ -59,8 +62,9 @@ Consequences:
 
 Only if a *second* consumer needs to render a *different* score shape (or a
 second renderer needs the same shape). Then the trait belongs in the **domain
-crate** (`tonal`), named after the domain (`Score`, `Voice`, `Measure`, …),
-and `musicxml` becomes generic over it. Not needed now.
+crate** (`species-counterpoint` for now, later a general domain crate), named
+after the domain (`Score`, `Voice`, `Measure`, …), and `musicxml` becomes
+generic over it. Not needed now.
 
 ## 3. `core::structure` decisions
 
@@ -118,29 +122,32 @@ The TS `Containers.ts` traversal maps 1:1 onto the existing `core` API:
 So the serializer needs no new abstraction: it uses `Container`/`Cursor` for
 traversal and binds to concrete domain types for the leaf data.
 
-## 5. Temporary strategy (current phase)
+## 5. Strategy (revised)
 
-The score structures in `species-counterpoint` are entangled with solver logic
-and will be disentangled into `tonal` only *after* the rest is ported.
-Therefore, for now:
+> Supersedes the earlier "adapters live in `species-counterpoint`" idea — see
+> `porting-species-counterpoint.md`.
 
-- **`musicxml` crate** contains only the domain-independent pieces:
-  - `Clef` / `ClefType` (pure data).
-  - `pitch()` — `<pitch>` serialization of a `std_hept::Pitch`.
-  - XML emission helpers over `quick-xml`.
-- **Adapters** (`note`, `measure`, `part`, `score`) — which need the
-  `Note`/`Measure`/`Voice`/`Score` types — are deferred to
-  `species-counterpoint` (and will later move to `musicxml` once `tonal`
-  exists).
-- **`species-counterpoint` / `tonal` crates are not created yet.**
+The `musicxml` adapters live in `musicxml` and are added **directly to the
+domain containers** via a `ToMxl` trait (`impl ToMxl for Score`, …), rather than
+being generic over `...Like` traits. This requires the domain types
+(`Note`/`Measure`/`Voice`/`Score`/`Chord`/`Harmony`/`Clef`) to live in a crate
+`musicxml` can depend on. For now that crate is `species-counterpoint` (the
+domain types are local to it; a standalone general/`tonal` crate is a postponed
+design problem — see `species-counterpoint-approach.md`).
+
+For now `musicxml` contains only `Clef`/`ClefType` and the `pitch()` element
+writer; the `note`/`measure`/`part`/`score` adapters are implemented against
+`species-counterpoint` once it exists (and `Clef` moves there, since `musicxml`
+will import it).
 
 ## 6. Deferred / open items
 
-- Move `Clef`, `NonHarmonicType` into `tonal` when it is extracted.
-- Write the `note`/`measure`/`part`/`score` adapters (in `species-counterpoint`
-  for now, later `musicxml`), porting the `divisions = 2` scale
+- Move `Clef`, `NonHarmonicType` into `species-counterpoint` when it is created
+  (they live there for now; a standalone domain crate is postponed).
+- Write the `note`/`measure`/`part`/`score` adapters in `musicxml` (as
+  `impl ToMxl for species_counterpoint::*`), porting the `divisions = 2` scale
   (`duration.mul(2)` → `duration() * 2`) and the suspension/neighbor/passing
-  lyric mapping from `Note.type`.
+  lyric mapping from `Note.non_harmonic`.
 - Decide enum-vs-unified types for heterogeneous voices/measures.
 - XML details: `alter` from `rational_value(acci)`; `octave` from `period`;
   `<step>` from a `CDEFGAB` index table.
