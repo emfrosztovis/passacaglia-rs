@@ -19,5 +19,5 @@ pub use degree::Degree;
 pub use interval::Interval;
 pub use pitch::Pitch;
 pub use scale::Scale;
-pub use system::{ET12, PitchSystem};
+pub use system::{PitchSystem, ET12};
 pub use tuning::{EqualTemperament, Tuning};

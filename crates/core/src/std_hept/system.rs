@@ -2,7 +2,7 @@ use num_rational::Ratio;
 
 use passacaglia_common::Rational;
 
-use crate::system::{ET12, PitchSystem};
+use crate::system::{PitchSystem, ET12};
 
 /// The standard, common-practice heptatonic pitch system (7 degrees, 12 pitch
 /// classes, octave period).

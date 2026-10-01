@@ -60,7 +60,9 @@ fn degree_to_string() {
         "v3/2f"
     );
     assert_eq!(
-        scales::c::MAJOR.at(5, Rational::new(-3, 2)).to_arabic_string(),
+        scales::c::MAJOR
+            .at(5, Rational::new(-3, 2))
+            .to_arabic_string(),
         "[6]3/2f"
     );
 }
@@ -148,6 +150,12 @@ fn degree_next_previous() {
     let s = scales::major(Pitch::parse("b").unwrap());
     assert_eq!(s.at(0, rational(0)).next().to_pitch().to_string(), "cs1");
     assert_eq!(s.at(6, rational(0)).next().to_pitch().to_string(), "b1");
-    assert_eq!(s.at(0, rational(0)).previous().to_pitch().to_string(), "as0");
-    assert_eq!(s.at(6, rational(0)).previous().to_pitch().to_string(), "gs1");
+    assert_eq!(
+        s.at(0, rational(0)).previous().to_pitch().to_string(),
+        "as0"
+    );
+    assert_eq!(
+        s.at(6, rational(0)).previous().to_pitch().to_string(),
+        "gs1"
+    );
 }

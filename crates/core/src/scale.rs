@@ -46,10 +46,7 @@ impl<S: PitchSystem> Scale<S> {
     pub fn new(degrees: Vec<Pitch<S>>, intervals: Vec<Interval<S>>) -> Self {
         debug_assert!(!intervals.is_empty());
         debug_assert_eq!(intervals.len(), degrees.len());
-        Scale {
-            degrees,
-            intervals,
-        }
+        Scale { degrees, intervals }
     }
 
     pub fn root(&self) -> Pitch<S> {

@@ -40,10 +40,16 @@ fn rational_parse() {
 #[test]
 fn interval_parse() {
     let i = parse_interval("-m3+1/2").unwrap();
-    assert_eq!((i.steps, i.distance_num, i.distance_den, i.sign), (2, 7, 2, -1));
+    assert_eq!(
+        (i.steps, i.distance_num, i.distance_den, i.sign),
+        (2, 7, 2, -1)
+    );
 
     let d = parse_interval("d12-2").unwrap();
-    assert_eq!((d.steps, d.distance_num, d.distance_den, d.sign), (11, 16, 1, 1));
+    assert_eq!(
+        (d.steps, d.distance_num, d.distance_den, d.sign),
+        (11, 16, 1, 1)
+    );
 
     for s in ["", "4", "m3+", "m3+1.5", "m8", "P0"] {
         assert!(parse_interval(s).is_err(), "expected `{s}` to fail");

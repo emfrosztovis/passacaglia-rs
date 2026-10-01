@@ -116,7 +116,9 @@ impl<S: PitchSystem> Interval<S> {
 
     /// Like [`Interval::matches`], but enharmonically (ignoring steps).
     pub fn matches_enharmonically(&self, other: &Interval<S>) -> bool {
-        other.to_simple(None).equals_enharmonically(&self.to_simple(None))
+        other
+            .to_simple(None)
+            .equals_enharmonically(&self.to_simple(None))
             && other.distance >= self.distance
     }
 
@@ -125,7 +127,11 @@ impl<S: PitchSystem> Interval<S> {
     }
 
     pub fn negate(&self) -> Self {
-        Interval::new(self.steps, self.distance, if self.sign == 1 { -1 } else { 1 })
+        Interval::new(
+            self.steps,
+            self.distance,
+            if self.sign == 1 { -1 } else { 1 },
+        )
     }
 
     pub fn abs(&self) -> Self {

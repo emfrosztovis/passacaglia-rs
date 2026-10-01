@@ -9,8 +9,16 @@ fn close(a: f64, b: f64, eps: f64) -> bool {
 fn et_tuning() {
     let a440 = EqualTemperament::new(440.0, &Pitch::parse("a4").unwrap());
 
-    assert!(close(a440.frequency_of(&Pitch::parse("c4").unwrap()), 261.63, 0.01));
-    assert!(close(a440.frequency_of(&Pitch::parse("bf6").unwrap()), 1864.66, 0.01));
+    assert!(close(
+        a440.frequency_of(&Pitch::parse("c4").unwrap()),
+        261.63,
+        0.01
+    ));
+    assert!(close(
+        a440.frequency_of(&Pitch::parse("bf6").unwrap()),
+        1864.66,
+        0.01
+    ));
 
     assert!(close(
         a440.ratio_between(&Pitch::parse("g5").unwrap(), &Pitch::parse("g6").unwrap()),

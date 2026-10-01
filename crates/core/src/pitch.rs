@@ -5,7 +5,7 @@ use num_traits::Signed;
 use passacaglia_common::{rational, Rational};
 
 use crate::interval::Interval;
-use crate::system::{ET12, PitchSystem};
+use crate::system::{PitchSystem, ET12};
 
 /// A musical pitch: a `(degree index, accidental, period)` triple.
 ///

@@ -51,9 +51,15 @@ fn to_string() {
 
     let b = Interval::new(11, Rational::new(16, 1), 1);
     assert_eq!(b.to_string(), "triply-diminished twelfth");
-    assert_eq!(b.to_verbose_string(true), "triply-diminished twelfth upward");
+    assert_eq!(
+        b.to_verbose_string(true),
+        "triply-diminished twelfth upward"
+    );
 
-    assert_eq!(Interval::new(5, Rational::new(9, 1), 1).to_string(), "major sixth");
+    assert_eq!(
+        Interval::new(5, Rational::new(9, 1), 1).to_string(),
+        "major sixth"
+    );
     assert_eq!(
         Interval::new(11, Rational::new(21, 1), 1).to_string(),
         "doubly-augmented twelfth"
@@ -67,9 +73,18 @@ fn to_string() {
         "major 14th"
     );
 
-    assert_eq!(Interval::new(7, Rational::new(12, 1), 1).to_string(), "octave");
-    assert_eq!(Interval::new(14, Rational::new(24, 1), 1).to_string(), "double octave");
-    assert_eq!(Interval::new(35, Rational::new(60, 1), 1).to_string(), "5-octave");
+    assert_eq!(
+        Interval::new(7, Rational::new(12, 1), 1).to_string(),
+        "octave"
+    );
+    assert_eq!(
+        Interval::new(14, Rational::new(24, 1), 1).to_string(),
+        "double octave"
+    );
+    assert_eq!(
+        Interval::new(35, Rational::new(60, 1), 1).to_string(),
+        "5-octave"
+    );
     assert_eq!(
         Interval::new(14, Rational::new(25, 1), 1).to_string(),
         "augmented double octave"
@@ -105,28 +120,40 @@ fn equality() {
 #[test]
 fn add() {
     assert_eq!(
-        Interval::parse("m3").unwrap().add(&Interval::parse("m3").unwrap()),
+        Interval::parse("m3")
+            .unwrap()
+            .add(&Interval::parse("m3").unwrap()),
         Interval::parse("d5").unwrap()
     );
     assert_eq!(
-        Interval::parse("M3").unwrap().add(&Interval::parse("-m3").unwrap()),
+        Interval::parse("M3")
+            .unwrap()
+            .add(&Interval::parse("-m3").unwrap()),
         Interval::parse("A1").unwrap()
     );
     assert_eq!(
-        Interval::parse("-M3").unwrap().add(&Interval::parse("m3").unwrap()),
+        Interval::parse("-M3")
+            .unwrap()
+            .add(&Interval::parse("m3").unwrap()),
         Interval::parse("-A1").unwrap()
     );
     assert_eq!(
-        Interval::parse("P1").unwrap().add(&Interval::parse("-A1").unwrap()),
+        Interval::parse("P1")
+            .unwrap()
+            .add(&Interval::parse("-A1").unwrap()),
         Interval::parse("-A1").unwrap()
     );
 
     assert_eq!(
-        Interval::parse("d2").unwrap().add(&Interval::parse("d2").unwrap()),
+        Interval::parse("d2")
+            .unwrap()
+            .add(&Interval::parse("d2").unwrap()),
         Interval::parse("d3-2").unwrap()
     );
     assert_eq!(
-        Interval::parse("-d2").unwrap().add(&Interval::parse("-d2").unwrap()),
+        Interval::parse("-d2")
+            .unwrap()
+            .add(&Interval::parse("-d2").unwrap()),
         Interval::parse("-d3-2").unwrap()
     );
 }

@@ -55,7 +55,8 @@ pub static C_HARMONIC_MINOR: LazyLock<Scale> = LazyLock::new(|| {
 
 pub static C_CHROMATIC: LazyLock<Scale> = LazyLock::new(|| {
     let degs = parse_pitches(&[
-        "c", "cs", "df", "d", "ds", "ef", "e", "f", "fs", "gf", "g", "gs", "af", "a", "as", "bf", "b",
+        "c", "cs", "df", "d", "ds", "ef", "e", "f", "fs", "gf", "g", "gs", "af", "a", "as", "bf",
+        "b",
     ]);
     Scale::from_pitches(&degs)
 });
@@ -79,8 +80,8 @@ pub mod scales {
     use std::sync::LazyLock;
 
     use super::{
-        C_ASCENDING_MINOR, C_CHROMATIC, C_COMPLETE_MINOR, C_DESCENDING_MINOR, C_HARMONIC_MINOR,
-        C_MAJOR, Pitch, Scale,
+        Pitch, Scale, C_ASCENDING_MINOR, C_CHROMATIC, C_COMPLETE_MINOR, C_DESCENDING_MINOR,
+        C_HARMONIC_MINOR, C_MAJOR,
     };
 
     pub mod c {
@@ -98,8 +99,10 @@ pub mod scales {
         pub static HARMONIC_MINOR: LazyLock<Scale> = LazyLock::new(|| (*C_HARMONIC_MINOR).clone());
         pub static CHROMATIC: LazyLock<Scale> = LazyLock::new(|| (*C_CHROMATIC).clone());
         pub static COMPLETE_MINOR: LazyLock<Scale> = LazyLock::new(|| (*C_COMPLETE_MINOR).clone());
-        pub static ASCENDING_MINOR: LazyLock<Scale> = LazyLock::new(|| (*C_ASCENDING_MINOR).clone());
-        pub static DESCENDING_MINOR: LazyLock<Scale> = LazyLock::new(|| (*C_DESCENDING_MINOR).clone());
+        pub static ASCENDING_MINOR: LazyLock<Scale> =
+            LazyLock::new(|| (*C_ASCENDING_MINOR).clone());
+        pub static DESCENDING_MINOR: LazyLock<Scale> =
+            LazyLock::new(|| (*C_DESCENDING_MINOR).clone());
     }
 
     pub fn major(root: Pitch) -> Scale {

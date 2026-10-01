@@ -10,7 +10,10 @@ fn rational_formatting() {
         rational_to_string(Rational::new(7, 3), true, true),
         "+2 1/3"
     );
-    assert_eq!(rational_to_string(Rational::new(-3, 2), false, false), "-3/2");
+    assert_eq!(
+        rational_to_string(Rational::new(-3, 2), false, false),
+        "-3/2"
+    );
 }
 
 #[test]

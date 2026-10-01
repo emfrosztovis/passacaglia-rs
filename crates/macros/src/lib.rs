@@ -2,8 +2,8 @@
 
 use proc_macro::TokenStream;
 
-mod pitch;
 mod interval;
+mod pitch;
 mod scale;
 
 #[proc_macro]

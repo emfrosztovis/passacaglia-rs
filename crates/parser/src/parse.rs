@@ -68,14 +68,46 @@ pub struct IntervalParts {
 // ---------------------------------------------------------------------------
 
 const INTERVAL_DATA: [&[(i64, Quality)]; 8] = [
-    &[(0, Quality::Perfect), (1, Quality::Augmented)],                // unisons
-    &[(0, Quality::Diminished), (1, Quality::Minor), (2, Quality::Major), (3, Quality::Augmented)], // seconds
-    &[(2, Quality::Diminished), (3, Quality::Minor), (4, Quality::Major), (5, Quality::Augmented)], // thirds
-    &[(4, Quality::Diminished), (5, Quality::Perfect), (6, Quality::Augmented)], // fourths
-    &[(6, Quality::Diminished), (7, Quality::Perfect), (8, Quality::Augmented)], // fifths
-    &[(7, Quality::Diminished), (8, Quality::Minor), (9, Quality::Major), (10, Quality::Augmented)], // sixths
-    &[(9, Quality::Diminished), (10, Quality::Minor), (11, Quality::Major), (12, Quality::Augmented)], // sevenths
-    &[(11, Quality::Diminished), (12, Quality::Perfect), (13, Quality::Augmented)], // octaves
+    &[(0, Quality::Perfect), (1, Quality::Augmented)], // unisons
+    &[
+        (0, Quality::Diminished),
+        (1, Quality::Minor),
+        (2, Quality::Major),
+        (3, Quality::Augmented),
+    ], // seconds
+    &[
+        (2, Quality::Diminished),
+        (3, Quality::Minor),
+        (4, Quality::Major),
+        (5, Quality::Augmented),
+    ], // thirds
+    &[
+        (4, Quality::Diminished),
+        (5, Quality::Perfect),
+        (6, Quality::Augmented),
+    ], // fourths
+    &[
+        (6, Quality::Diminished),
+        (7, Quality::Perfect),
+        (8, Quality::Augmented),
+    ], // fifths
+    &[
+        (7, Quality::Diminished),
+        (8, Quality::Minor),
+        (9, Quality::Major),
+        (10, Quality::Augmented),
+    ], // sixths
+    &[
+        (9, Quality::Diminished),
+        (10, Quality::Minor),
+        (11, Quality::Major),
+        (12, Quality::Augmented),
+    ], // sevenths
+    &[
+        (11, Quality::Diminished),
+        (12, Quality::Perfect),
+        (13, Quality::Augmented),
+    ], // octaves
 ];
 
 /// The `(semitones, quality)` rows for the given number of simple steps.

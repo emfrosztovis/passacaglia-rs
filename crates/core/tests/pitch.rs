@@ -33,10 +33,7 @@ fn to_string() {
 
 #[test]
 fn equality() {
-    assert_eq!(
-        Pitch::parse("c4").unwrap(),
-        Pitch::parse("c4").unwrap()
-    );
+    assert_eq!(Pitch::parse("c4").unwrap(), Pitch::parse("c4").unwrap());
     assert_eq!(
         Pitch::parse("d12/34s5").unwrap(),
         Pitch::parse("d6/17s5").unwrap()
@@ -56,10 +53,22 @@ fn equality() {
 
 #[test]
 fn normalize() {
-    assert_eq!(Pitch::parse("cff4").unwrap().normalize().to_string(), "cff4");
-    assert_eq!(Pitch::parse("csss4").unwrap().normalize().to_string(), "ds4");
-    assert_eq!(Pitch::parse("cfff4").unwrap().normalize().to_string(), "bff3");
-    assert_eq!(Pitch::parse("b12s4").unwrap().normalize().to_string(), "ass5");
+    assert_eq!(
+        Pitch::parse("cff4").unwrap().normalize().to_string(),
+        "cff4"
+    );
+    assert_eq!(
+        Pitch::parse("csss4").unwrap().normalize().to_string(),
+        "ds4"
+    );
+    assert_eq!(
+        Pitch::parse("cfff4").unwrap().normalize().to_string(),
+        "bff3"
+    );
+    assert_eq!(
+        Pitch::parse("b12s4").unwrap().normalize().to_string(),
+        "ass5"
+    );
 }
 
 #[test]

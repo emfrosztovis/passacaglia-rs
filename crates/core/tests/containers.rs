@@ -91,7 +91,10 @@ fn sequential_at() {
 fn sequential_cursor_at_time() {
     let container = SequentialContainer::new(elements());
 
-    assert_eq!(container.cursor_at_time(Rational::new(0, 1)).unwrap().name, "A");
+    assert_eq!(
+        container.cursor_at_time(Rational::new(0, 1)).unwrap().name,
+        "A"
+    );
     assert_eq!(
         container.cursor_at_time(Rational::new(1, 10)).unwrap().name,
         "A"
@@ -105,7 +108,10 @@ fn sequential_cursor_at_time() {
         "C"
     );
     assert_eq!(
-        container.cursor_at_time(Rational::new(99, 100)).unwrap().name,
+        container
+            .cursor_at_time(Rational::new(99, 100))
+            .unwrap()
+            .name,
         "C"
     );
     assert!(container.cursor_at_time(Rational::new(1, 1)).is_none());
@@ -117,19 +123,31 @@ fn sequential_cursor_before_time() {
 
     assert!(container.cursor_before_time(Rational::new(0, 1)).is_none());
     assert_eq!(
-        container.cursor_before_time(Rational::new(1, 10)).unwrap().name,
+        container
+            .cursor_before_time(Rational::new(1, 10))
+            .unwrap()
+            .name,
         "A"
     );
     assert_eq!(
-        container.cursor_before_time(Rational::new(1, 4)).unwrap().name,
+        container
+            .cursor_before_time(Rational::new(1, 4))
+            .unwrap()
+            .name,
         "A"
     );
     assert_eq!(
-        container.cursor_before_time(Rational::new(13, 50)).unwrap().name,
+        container
+            .cursor_before_time(Rational::new(13, 50))
+            .unwrap()
+            .name,
         "B"
     );
     assert_eq!(
-        container.cursor_before_time(Rational::new(3, 2)).unwrap().name,
+        container
+            .cursor_before_time(Rational::new(3, 2))
+            .unwrap()
+            .name,
         "C"
     );
 }

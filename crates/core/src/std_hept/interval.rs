@@ -55,7 +55,8 @@ fn steps_to_ordinal(n: usize) -> String {
     }
     if n.is_multiple_of(7) {
         return get_multiplier(rational((n / 7) as i64), "octave");
-    }    let ord = n + 1;
+    }
+    let ord = n + 1;
     if ord % 10 == 1 {
         return format!("{ord}st");
     }
@@ -152,7 +153,10 @@ impl Interval<StandardHeptatonic> {
         } else if (*diff.numer() <= 0 && q == Quality::Diminished)
             || (*diff.numer() >= 0 && q == Quality::Augmented)
         {
-            format!("{}{name}", get_multiplier_adverb(diff.abs() + rational(1), &quality))
+            format!(
+                "{}{name}",
+                get_multiplier_adverb(diff.abs() + rational(1), &quality)
+            )
         } else {
             format!("{quality}{name} {}", rational_to_string(diff, true, true))
         };
