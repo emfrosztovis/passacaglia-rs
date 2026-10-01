@@ -1,5 +1,7 @@
 use passacaglia_core::std_hept::{scales, Interval, Pitch, Scale};
-use passacaglia_macros::{interval, pitch, scale};
+use passacaglia_macros::std_hept_interval as interval;
+use passacaglia_macros::std_hept_pitch as pitch;
+use passacaglia_macros::std_hept_scale as scale;
 
 #[test]
 fn pitch_macro() {
