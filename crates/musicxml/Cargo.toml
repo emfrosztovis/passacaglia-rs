@@ -8,4 +8,5 @@ license.workspace = true
 [dependencies]
 passacaglia-common.workspace = true
 passacaglia-core.workspace = true
+passacaglia-species-counterpoint.workspace = true
 quick-xml.workspace = true

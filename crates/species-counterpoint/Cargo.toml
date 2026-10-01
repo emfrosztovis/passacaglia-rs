@@ -1,0 +1,10 @@
+[package]
+name = "passacaglia-species-counterpoint"
+description = "Species counterpoint domain model, rules, and solver for the passacaglia music engine."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+passacaglia-common.workspace = true
+passacaglia-core.workspace = true

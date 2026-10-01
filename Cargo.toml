@@ -5,6 +5,7 @@ members = [
     "crates/core",
     "crates/macros",
     "crates/musicxml",
+    "crates/species-counterpoint",
 ]
 
 [workspace.package]
@@ -25,4 +26,5 @@ passacaglia-common = { path = "crates/common" }
 passacaglia-core = { path = "crates/core" }
 passacaglia-macros = { path = "crates/macros" }
 passacaglia-musicxml = { path = "crates/musicxml" }
+passacaglia-species-counterpoint = { path = "crates/species-counterpoint" }
 
