@@ -1,0 +1,26 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/common",
+    "crates/parser",
+    "crates/core",
+    "crates/macros",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0-only"
+repository = "https://github.com/anomalyco/passacaglia-rs"
+
+[workspace.dependencies]
+num-rational = "0.4"
+num-traits = "0.2"
+proc-macro2 = "1"
+quote = "1"
+syn = "2"
+
+passacaglia-common = { path = "crates/common" }
+passacaglia-parser = { path = "crates/parser" }
+passacaglia-core = { path = "crates/core" }
+passacaglia-macros = { path = "crates/macros" }

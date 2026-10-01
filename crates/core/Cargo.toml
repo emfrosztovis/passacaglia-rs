@@ -1,0 +1,15 @@
+[package]
+name = "passacaglia-core"
+description = "Core musical abstractions (pitch, interval, scale, tuning, structure) for the passacaglia music engine."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+passacaglia-common.workspace = true
+passacaglia-parser.workspace = true
+num-rational.workspace = true
+num-traits.workspace = true
+
+[dev-dependencies]
+passacaglia-macros.workspace = true

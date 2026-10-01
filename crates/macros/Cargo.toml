@@ -1,0 +1,15 @@
+[package]
+name = "passacaglia-macros"
+description = "Proc-macro literal parsers (pitch!, interval!, scale!) for the passacaglia music engine."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+passacaglia-parser.workspace = true
+proc-macro2.workspace = true
+quote.workspace = true
+syn.workspace = true

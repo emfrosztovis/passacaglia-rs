@@ -1,0 +1,8 @@
+[package]
+name = "passacaglia-parser"
+description = "Pure string parsers and shared naming tables for passacaglia literals (pitch, interval, accidental, rational)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
