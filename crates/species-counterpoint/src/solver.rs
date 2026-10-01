@@ -277,9 +277,9 @@ impl CounterpointSolver {
         });
 
         let mut seq = 1u64;
-        let mut progress = 0usize;
         let mut furthest = 0usize;
         let mut n_node = 0usize;
+        let mut progress: usize;
 
         while !open.is_empty() {
             let mut new_nodes = Vec::new();
@@ -297,10 +297,11 @@ impl CounterpointSolver {
                 if current.measure_index < furthest.saturating_sub(self.remove_old) {
                     continue;
                 }
-                if current.measure_index > furthest {
-                    furthest = current.measure_index;
-                }
-                if current.measure_index != progress || n_node.is_multiple_of(self.report_interval) {
+                if current.measure_index > furthest || n_node.is_multiple_of(self.report_interval) {
+                    if current.measure_index > furthest {
+                        furthest = current.measure_index;
+                    }
+
                     progress = current.measure_index;
                     if let Some(cb) = self.on_progress.as_mut() {
                         cb(CounterpointSolverProgress {
