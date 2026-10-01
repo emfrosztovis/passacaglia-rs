@@ -41,6 +41,7 @@ impl<S: PitchSystem> Hash for Interval<S> {
 }
 
 impl<S: PitchSystem> Interval<S> {
+    #[must_use]
     pub const fn new(steps: usize, distance: Rational, sign: i8) -> Self {
         assert!(sign == 1 || sign == -1);
         Interval {
@@ -52,13 +53,16 @@ impl<S: PitchSystem> Interval<S> {
     }
 
     /// Same sign and same distance, ignoring steps.
+    #[must_use]
     pub fn equals_enharmonically(&self, other: &Interval<S>) -> bool {
         self.sign == other.sign && self.distance == other.distance
     }
 
+    #[must_use]
     pub fn add(&self, other: &Interval<S>) -> Self {
-        let d = self.distance * self.sign as i64 + other.distance * other.sign as i64;
-        let s = self.steps as i64 * self.sign as i64 + other.steps as i64 * other.sign as i64;
+        let d = self.distance * i64::from(self.sign) + other.distance * i64::from(other.sign);
+        let s =
+            self.steps as i64 * i64::from(self.sign) + other.steps as i64 * i64::from(other.sign);
         let most_signful = if *d.numer() == 0 { s } else { *d.numer() };
         Interval::new(
             s.unsigned_abs() as usize,
@@ -67,6 +71,7 @@ impl<S: PitchSystem> Interval<S> {
         )
     }
 
+    #[must_use]
     pub fn add_period(&self, n: i32) -> Self {
         if n == 0 {
             return *self;
@@ -81,6 +86,7 @@ impl<S: PitchSystem> Interval<S> {
     }
 
     /// Reduce a compound interval (spanning more than one period) to a simple one.
+    #[must_use]
     pub fn to_simple(&self, preserve_up_to_steps: Option<usize>) -> Self {
         if self.steps < S::N_DEGREES {
             return *self;
@@ -91,7 +97,7 @@ impl<S: PitchSystem> Interval<S> {
             }
         }
 
-        let preserve_periods = preserve_up_to_steps.map(|p| p / S::N_DEGREES).unwrap_or(0);
+        let preserve_periods = preserve_up_to_steps.map_or(0, |p| p / S::N_DEGREES);
         let periods = (self.steps / S::N_DEGREES)
             .min((self.distance / rational(S::N_PITCH_CLASSES as i64)).to_integer() as usize)
             .saturating_sub(preserve_periods);
@@ -110,11 +116,13 @@ impl<S: PitchSystem> Interval<S> {
     }
 
     /// `other` equals `this`, or reduces to the same simple interval and is larger.
+    #[must_use]
     pub fn matches(&self, other: &Interval<S>) -> bool {
         other.to_simple(None) == self.to_simple(None) && other.distance >= self.distance
     }
 
     /// Like [`Interval::matches`], but enharmonically (ignoring steps).
+    #[must_use]
     pub fn matches_enharmonically(&self, other: &Interval<S>) -> bool {
         other
             .to_simple(None)
@@ -122,10 +130,12 @@ impl<S: PitchSystem> Interval<S> {
             && other.distance >= self.distance
     }
 
+    #[must_use]
     pub fn with_sign(&self, sign: i8) -> Self {
         Interval::new(self.steps, self.distance, sign)
     }
 
+    #[must_use]
     pub fn negate(&self) -> Self {
         Interval::new(
             self.steps,
@@ -134,6 +144,7 @@ impl<S: PitchSystem> Interval<S> {
         )
     }
 
+    #[must_use]
     pub fn abs(&self) -> Self {
         Interval::new(self.steps, self.distance, 1)
     }

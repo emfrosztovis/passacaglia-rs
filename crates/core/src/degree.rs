@@ -18,15 +18,16 @@ pub struct Degree<'a, S: PitchSystem> {
     pub period: i32,
 }
 
-impl<'a, S: PitchSystem> Clone for Degree<'a, S> {
+impl<S: PitchSystem> Clone for Degree<'_, S> {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<'a, S: PitchSystem> Copy for Degree<'a, S> {}
+impl<S: PitchSystem> Copy for Degree<'_, S> {}
 
 impl<'a, S: PitchSystem> Degree<'a, S> {
+    #[must_use]
     pub const fn new(scale: &'a Scale<S>, index: usize, acci: Rational, period: i32) -> Self {
         Degree {
             scale,
@@ -36,16 +37,19 @@ impl<'a, S: PitchSystem> Degree<'a, S> {
         }
     }
 
+    #[must_use]
     pub fn with_period(&self, p: i32) -> Self {
         Degree::new(self.scale, self.index, self.acci, p)
     }
 
+    #[must_use]
     pub fn to_pitch(&self) -> Pitch<S> {
         self.scale.degrees[self.index]
             .add_accidental(self.acci)
             .add_period(self.period)
     }
 
+    #[must_use]
     pub fn next(&self) -> Self {
         let i = self.index + 1;
         if i >= self.scale.degrees.len() {
@@ -60,6 +64,7 @@ impl<'a, S: PitchSystem> Degree<'a, S> {
         }
     }
 
+    #[must_use]
     pub fn previous(&self) -> Self {
         if self.index == 0 {
             Degree::new(
@@ -74,15 +79,15 @@ impl<'a, S: PitchSystem> Degree<'a, S> {
     }
 }
 
-impl<'a, S: PitchSystem> PartialEq for Degree<'a, S> {
+impl<S: PitchSystem> PartialEq for Degree<'_, S> {
     fn eq(&self, other: &Self) -> bool {
         self.index == other.index && self.acci == other.acci && self.period == other.period
     }
 }
 
-impl<'a, S: PitchSystem> Eq for Degree<'a, S> {}
+impl<S: PitchSystem> Eq for Degree<'_, S> {}
 
-impl<'a, S: PitchSystem> Hash for Degree<'a, S> {
+impl<S: PitchSystem> Hash for Degree<'_, S> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         (self.index, self.acci, self.period).hash(state);
     }

@@ -115,10 +115,12 @@ impl FromStr for Interval<StandardHeptatonic> {
 
 impl Interval<StandardHeptatonic> {
     /// Parse an interval abbreviation, or `None` on failure.
+    #[must_use]
     pub fn parse(s: &str) -> Option<Self> {
         Self::from_str(s).ok()
     }
 
+    #[must_use]
     pub fn to_abbreviation(&self, always_signed: bool) -> String {
         let (diff, q) = get_closest_well_known(self);
         let quality = q.abbr();
@@ -138,6 +140,7 @@ impl Interval<StandardHeptatonic> {
     }
 
     /// The verbose (`"major sixth"`) form of the interval.
+    #[must_use]
     pub fn to_verbose_string(&self, always_signed: bool) -> String {
         let (diff, q) = get_closest_well_known(self);
         let name = steps_to_ordinal(self.steps);

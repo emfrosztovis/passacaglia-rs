@@ -27,11 +27,13 @@ impl FromStr for Pitch<StandardHeptatonic> {
 
 impl Pitch<StandardHeptatonic> {
     /// Parse a pitch literal, or `None` on failure.
+    #[must_use]
     pub fn parse(s: &str) -> Option<Self> {
         Self::from_str(s).ok()
     }
 
     /// The positive simple interval between two pitches (period ignored).
+    #[must_use]
     pub fn absolute_simple_interval_to(&self, b: &Self) -> Interval<StandardHeptatonic> {
         let a = self.with_period(0);
         let b = b.with_period(0);
@@ -39,6 +41,7 @@ impl Pitch<StandardHeptatonic> {
     }
 
     /// Rewrite using at most double accidentals (`abs(acci) <= 2`).
+    #[must_use]
     pub fn normalize(&self) -> Self {
         let acci = self.acci;
         if acci.abs() < rational(2) {

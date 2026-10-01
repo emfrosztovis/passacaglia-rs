@@ -12,6 +12,7 @@ pub enum Quality {
 
 impl Quality {
     /// The single-letter abbreviation (`P`, `M`, `m`, `A`, `d`).
+    #[must_use]
     pub fn abbr(self) -> char {
         match self {
             Quality::Perfect => 'P',
@@ -22,6 +23,7 @@ impl Quality {
         }
     }
 
+    #[must_use]
     pub fn from_abbr(c: u8) -> Option<Quality> {
         Some(match c {
             b'P' => Quality::Perfect,
@@ -34,6 +36,7 @@ impl Quality {
     }
 
     /// The full quality name (`perfect`, `major`, `minor`, `augmented`, `diminished`).
+    #[must_use]
     pub fn word(self) -> &'static str {
         match self {
             Quality::Perfect => "perfect",
@@ -111,6 +114,7 @@ const INTERVAL_DATA: [&[(i64, Quality)]; 8] = [
 ];
 
 /// The `(semitones, quality)` rows for the given number of simple steps.
+#[must_use]
 pub fn interval_data(simple_steps: usize) -> &'static [(i64, Quality)] {
     INTERVAL_DATA.get(simple_steps).copied().unwrap_or(&[])
 }

@@ -13,6 +13,7 @@ pub type Rational = Ratio<i64>;
 ///
 /// This is the replacement for the removed `Rational::from` float path; every
 /// literal must be written exactly.
+#[must_use]
 pub const fn rational(n: i64) -> Rational {
     Ratio::new_raw(n, 1)
 }
@@ -20,11 +21,13 @@ pub const fn rational(n: i64) -> Rational {
 /// Convert a [`Rational`] to its nearest `f64` value.
 ///
 /// Only for display or external (floating-point) APIs — never for control flow.
+#[must_use]
 pub fn rational_value(r: Rational) -> f64 {
     *r.numer() as f64 / *r.denom() as f64
 }
 
 /// Format a [`Rational`] following the original `Rational::toString` options.
+#[must_use]
 pub fn rational_to_string(r: Rational, always_signed: bool, mixed_fraction: bool) -> String {
     let sign = if *r.numer() < 0 {
         "-"

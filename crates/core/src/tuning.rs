@@ -26,6 +26,7 @@ pub struct EqualTemperament<S: PitchSystem> {
 }
 
 impl<S: PitchSystem> EqualTemperament<S> {
+    #[must_use]
     pub fn new(reference_freq: f64, reference_pitch: &Pitch<S>) -> Self {
         EqualTemperament {
             reference_freq,

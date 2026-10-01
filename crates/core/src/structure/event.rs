@@ -15,10 +15,12 @@ pub struct EventContainer<T: InstantaneousElement> {
 }
 
 impl<T: InstantaneousElement> EventContainer<T> {
+    #[must_use]
     pub fn new(elements: Vec<Located<T>>) -> Self {
         EventContainer { elements }
     }
 
+    #[must_use]
     pub fn elements(&self) -> &[Located<T>] {
         &self.elements
     }

@@ -24,3 +24,19 @@ passacaglia-common = { path = "crates/common" }
 passacaglia-parser = { path = "crates/parser" }
 passacaglia-core = { path = "crates/core" }
 passacaglia-macros = { path = "crates/macros" }
+
+# Musical values in this engine are tiny (degrees <= 7, pitch classes <= 12,
+# small periods/octaves), so the `as` casts between usize/i64/u64/i32/f64 are
+# always in range and lossless in practice. We pin these pedantic cast lints to
+# `allow` (rather than scattering `try_from().unwrap()` everywhere) so the IDE
+# and `cargo clippy` agree. The remaining pedantic lints (`must_use`, lossless
+# `From` casts, etc.) are addressed in code.
+[workspace.lints.clippy]
+cast_possible_wrap = "allow"
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+cast_precision_loss = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+wildcard_imports = "allow"
+

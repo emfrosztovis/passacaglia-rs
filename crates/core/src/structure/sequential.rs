@@ -10,6 +10,7 @@ pub struct SequentialContainer<T: DurationalElement> {
 }
 
 impl<T: DurationalElement> SequentialContainer<T> {
+    #[must_use]
     pub fn new(elements: Vec<T>) -> Self {
         let mut starts = Vec::with_capacity(elements.len());
         let mut acc = rational(0);
@@ -20,6 +21,7 @@ impl<T: DurationalElement> SequentialContainer<T> {
         SequentialContainer { elements, starts }
     }
 
+    #[must_use]
     pub fn elements(&self) -> &[T] {
         &self.elements
     }

@@ -43,21 +43,25 @@ impl<S: PitchSystem> Hash for Scale<S> {
 }
 
 impl<S: PitchSystem> Scale<S> {
+    #[must_use]
     pub fn new(degrees: Vec<Pitch<S>>, intervals: Vec<Interval<S>>) -> Self {
         debug_assert!(!intervals.is_empty());
         debug_assert_eq!(intervals.len(), degrees.len());
         Scale { degrees, intervals }
     }
 
+    #[must_use]
     pub fn root(&self) -> Pitch<S> {
         self.degrees[0]
     }
 
     /// The degree at `i`, optionally with an accidental.
+    #[must_use]
     pub fn at(&self, i: usize, acci: Rational) -> Degree<'_, S> {
         Degree::new(self, i, acci, 0)
     }
 
+    #[must_use]
     pub fn get_exact_degree(&self, p: &Pitch<S>, allow_enharmonic: bool) -> Option<Degree<'_, S>> {
         let p0 = p.with_period(0);
         let i = self.degrees.iter().position(|x| {
@@ -71,6 +75,7 @@ impl<S: PitchSystem> Scale<S> {
         Some(self.at(i, rational(0)))
     }
 
+    #[must_use]
     pub fn get_degrees_in_range(&self, l: &Pitch<S>, h: &Pitch<S>) -> Vec<Degree<'_, S>> {
         let mut result = Vec::new();
         let mut current = self.at(0, rational(0)).with_period(l.period - 1);
@@ -86,6 +91,7 @@ impl<S: PitchSystem> Scale<S> {
 
     /// Rotate the scale. Positive `n` shifts left; the intervals rotate, and the
     /// root moves only when `move_root` is set.
+    #[must_use]
     pub fn rotate(&self, n: i64, move_root: bool) -> Scale<S> {
         let new_intervals = rotate_array(&self.intervals, n);
 
@@ -106,6 +112,7 @@ impl<S: PitchSystem> Scale<S> {
     }
 
     /// Transpose the scale by an interval. The intervals themselves do not change.
+    #[must_use]
     pub fn transpose(&self, int: &Interval<S>) -> Scale<S> {
         let mut int = *int;
         let new_root = self.root().add(&int);
@@ -117,12 +124,14 @@ impl<S: PitchSystem> Scale<S> {
     }
 
     /// Transpose the scale so that its root becomes `new_root`.
+    #[must_use]
     pub fn transpose_to(&self, new_root: &Pitch<S>) -> Scale<S> {
         let int = self.root().interval_to(&new_root.with_period(0));
         self.transpose(&int)
     }
 
     /// Compare only the interval structure, ignoring the root.
+    #[must_use]
     pub fn interval_equals(&self, other: &Scale<S>) -> bool {
         self.intervals.len() == other.intervals.len()
             && self

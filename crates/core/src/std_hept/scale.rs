@@ -14,6 +14,7 @@ const ROMAN_NUMERALS: [&str; 10] = ["i", "ii", "iii", "iv", "v", "vi", "vii", "v
 
 impl Scale<StandardHeptatonic> {
     /// Build a scale from a root and its intervals (the last wraps back to the root).
+    #[must_use]
     pub fn from_intervals(
         root: Pitch<StandardHeptatonic>,
         intervals: &[Interval<StandardHeptatonic>],
@@ -36,6 +37,7 @@ impl Scale<StandardHeptatonic> {
     }
 
     /// Build a scale from its degrees (the wrap interval is inferred).
+    #[must_use]
     pub fn from_pitches(degrees: &[Pitch<StandardHeptatonic>]) -> Self {
         let mut intervals = Vec::with_capacity(degrees.len());
         for i in 1..degrees.len() {
@@ -54,6 +56,7 @@ impl Scale<StandardHeptatonic> {
     }
 
     /// Parse a scale-degree expression (roman numeral or `[n]`, plus accidental).
+    #[must_use]
     pub fn parse_degree(&self, ex: &str) -> Option<Degree<'_, StandardHeptatonic>> {
         let bytes = ex.as_bytes();
         let (idx, rest) = if bytes.first() == Some(&b'[') {
@@ -85,7 +88,7 @@ impl Scale<StandardHeptatonic> {
     }
 }
 
-impl<'a> fmt::Display for Degree<'a, StandardHeptatonic> {
+impl fmt::Display for Degree<'_, StandardHeptatonic> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -96,8 +99,9 @@ impl<'a> fmt::Display for Degree<'a, StandardHeptatonic> {
     }
 }
 
-impl<'a> Degree<'a, StandardHeptatonic> {
+impl Degree<'_, StandardHeptatonic> {
     /// The `preferArabic` form (`[n]` instead of roman numerals).
+    #[must_use]
     pub fn to_arabic_string(&self) -> String {
         format!("[{}]{}", self.index + 1, accidental::print(self.acci))
     }

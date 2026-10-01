@@ -3,6 +3,7 @@
 /// ```text
 /// modulo(-1, 7) -> 6
 /// ```
+#[must_use]
 pub fn modulo(n: i64, m: i64) -> i64 {
     n.rem_euclid(m)
 }
