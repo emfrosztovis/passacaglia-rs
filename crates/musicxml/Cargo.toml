@@ -1,0 +1,11 @@
+[package]
+name = "passacaglia-musicxml"
+description = "MusicXML (Western staff notation) serialization for the passacaglia music engine."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+passacaglia-common.workspace = true
+passacaglia-core.workspace = true
+quick-xml.workspace = true

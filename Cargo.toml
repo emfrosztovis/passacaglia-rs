@@ -4,6 +4,7 @@ members = [
     "crates/common",
     "crates/core",
     "crates/macros",
+    "crates/musicxml",
 ]
 
 [workspace.package]
@@ -18,8 +19,10 @@ num-traits = "0.2"
 proc-macro2 = "1"
 quote = "1"
 syn = "2"
+quick-xml = "0.42"
 
 passacaglia-common = { path = "crates/common" }
 passacaglia-core = { path = "crates/core" }
 passacaglia-macros = { path = "crates/macros" }
+passacaglia-musicxml = { path = "crates/musicxml" }
 
