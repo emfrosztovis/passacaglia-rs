@@ -1,4 +1,4 @@
-use passacaglia_common::{modulo, rational, rational_to_string, rotate_array, Rational};
+use passacaglia_common::{rational, rational_to_string, rotate_array, Rational};
 
 #[test]
 fn rational_formatting() {
@@ -14,16 +14,6 @@ fn rational_formatting() {
         rational_to_string(Rational::new(-3, 2), false, false),
         "-3/2"
     );
-}
-
-#[test]
-fn modulo_values() {
-    assert_eq!(modulo(7, 7), 0);
-    assert_eq!(modulo(8, 7), 1);
-    assert_eq!(modulo(6, 7), 6);
-    assert_eq!(modulo(-1, 7), 6);
-    assert_eq!(modulo(-7, 7), 0);
-    assert_eq!(modulo(-8, 7), 6);
 }
 
 #[test]

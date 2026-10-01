@@ -1,13 +1,3 @@
-/// Standard mathematical modulo (handles negative numbers correctly).
-///
-/// ```text
-/// modulo(-1, 7) -> 6
-/// ```
-#[must_use]
-pub fn modulo(n: i64, m: i64) -> i64 {
-    n.rem_euclid(m)
-}
-
 /// Rotate a slice by `n` steps. Positive `n` means left-shift, negative right-shift.
 ///
 /// This is the replacement for the original `rotateArray`, using [`slice::rotate_left`].

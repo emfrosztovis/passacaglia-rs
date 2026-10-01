@@ -1,13 +1,4 @@
-use num_rational::Ratio;
-
 use passacaglia_common::Rational;
-use passacaglia_parser::{parse_accidental, ParseError};
-
-/// Parse an accidental expression (`''`, `n`, `s+`, `f+`, `3f`, `3/4s`, …).
-pub fn parse(s: &str) -> Result<Rational, ParseError> {
-    let (num, den) = parse_accidental(s)?;
-    Ok(Ratio::new(num, den))
-}
 
 /// Print an accidental (`s` for sharps, `f` for flats).
 pub fn print(x: Rational) -> String {

@@ -1,5 +1,9 @@
+use std::str::FromStr;
+
 use proc_macro2::TokenStream;
 use quote::quote;
+
+use passacaglia_core::std_hept::Interval;
 
 pub fn expand(input: TokenStream) -> TokenStream {
     let lit: syn::LitStr = match syn::parse2(input) {
@@ -7,16 +11,16 @@ pub fn expand(input: TokenStream) -> TokenStream {
         Err(e) => return e.to_compile_error(),
     };
     let s = lit.value();
-    match passacaglia_parser::parse_interval(&s) {
+    match Interval::from_str(&s) {
         Ok(i) => {
             let steps = i.steps;
-            let num = i.distance_num;
-            let den = i.distance_den;
+            let num = *i.distance.numer();
+            let den = *i.distance.denom();
             let sign = i.sign;
             quote! {
                 ::passacaglia_core::std_hept::Interval::new(
                     #steps,
-                    ::passacaglia_common::Rational::new_raw(#num, #den),
+                    ::passacaglia_core::Rational::new_raw(#num, #den),
                     #sign,
                 )
             }

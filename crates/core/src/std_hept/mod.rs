@@ -4,11 +4,13 @@
 mod accidental;
 mod constants;
 mod interval;
+mod parse;
 mod pitch;
 mod scale;
 mod system;
 
 pub use constants::{scales, PitchClasses, PITCH_CLASSES};
+pub use parse::ParseError;
 pub use system::StandardHeptatonic;
 
 pub type Pitch = crate::pitch::Pitch<StandardHeptatonic>;

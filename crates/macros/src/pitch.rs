@@ -1,5 +1,9 @@
+use std::str::FromStr;
+
 use proc_macro2::TokenStream;
 use quote::quote;
+
+use passacaglia_core::std_hept::Pitch;
 
 pub fn expand(input: TokenStream) -> TokenStream {
     let lit: syn::LitStr = match syn::parse2(input) {
@@ -7,16 +11,16 @@ pub fn expand(input: TokenStream) -> TokenStream {
         Err(e) => return e.to_compile_error(),
     };
     let s = lit.value();
-    match passacaglia_parser::parse_pitch(&s) {
+    match Pitch::from_str(&s) {
         Ok(p) => {
             let index = p.index;
-            let num = p.acci_num;
-            let den = p.acci_den;
+            let num = *p.acci.numer();
+            let den = *p.acci.denom();
             let period = p.period;
             quote! {
                 ::passacaglia_core::std_hept::Pitch::new(
                     #index,
-                    ::passacaglia_common::Rational::new_raw(#num, #den),
+                    ::passacaglia_core::Rational::new_raw(#num, #den),
                     #period,
                 )
             }

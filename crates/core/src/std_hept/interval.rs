@@ -4,9 +4,9 @@ use std::str::FromStr;
 use num_traits::Signed;
 
 use passacaglia_common::{rational, rational_to_string, Rational};
-use passacaglia_parser::{interval_data, parse_interval, ParseError, Quality};
 
 use crate::interval::Interval;
+use crate::std_hept::parse::{interval_data, parse_interval, ParseError, Quality};
 use crate::std_hept::system::StandardHeptatonic;
 
 const MULTIPLIER_ADVERBS: [&str; 4] = ["", "", "doubly", "triply"];
@@ -104,12 +104,7 @@ impl FromStr for Interval<StandardHeptatonic> {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let i = parse_interval(s)?;
-        Ok(Interval::new(
-            i.steps,
-            Rational::new(i.distance_num, i.distance_den),
-            i.sign,
-        ))
+        parse_interval(s)
     }
 }
 

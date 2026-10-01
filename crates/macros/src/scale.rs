@@ -1,8 +1,12 @@
+use std::str::FromStr;
+
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::parse::Parser;
 use syn::punctuated::Punctuated;
 use syn::Token;
+
+use passacaglia_core::std_hept::Interval;
 
 pub fn expand(input: TokenStream) -> TokenStream {
     let parser = Punctuated::<syn::LitStr, Token![,]>::parse_terminated;
@@ -19,16 +23,16 @@ pub fn expand(input: TokenStream) -> TokenStream {
     let mut intervals = Vec::with_capacity(lits.len());
     for lit in &lits {
         let s = lit.value();
-        match passacaglia_parser::parse_interval(&s) {
+        match Interval::from_str(&s) {
             Ok(i) => {
                 let steps = i.steps;
-                let num = i.distance_num;
-                let den = i.distance_den;
+                let num = *i.distance.numer();
+                let den = *i.distance.denom();
                 let sign = i.sign;
                 intervals.push(quote! {
                     ::passacaglia_core::std_hept::Interval::new(
                         #steps,
-                        ::passacaglia_common::Rational::new_raw(#num, #den),
+                        ::passacaglia_core::Rational::new_raw(#num, #den),
                         #sign,
                     )
                 });
@@ -44,7 +48,7 @@ pub fn expand(input: TokenStream) -> TokenStream {
         ::passacaglia_core::std_hept::Scale::from_intervals(
             ::passacaglia_core::std_hept::Pitch::new(
                 0usize,
-                ::passacaglia_common::Rational::new_raw(0i64, 1i64),
+                ::passacaglia_core::Rational::new_raw(0i64, 1i64),
                 0i32,
             ),
             &[#(#intervals),*],

@@ -50,18 +50,15 @@ impl<S: PitchSystem> Scale<S> {
         Scale { degrees, intervals }
     }
 
-    #[must_use]
     pub fn root(&self) -> Pitch<S> {
         self.degrees[0]
     }
 
     /// The degree at `i`, optionally with an accidental.
-    #[must_use]
     pub fn at(&self, i: usize, acci: Rational) -> Degree<'_, S> {
         Degree::new(self, i, acci, 0)
     }
 
-    #[must_use]
     pub fn get_exact_degree(&self, p: &Pitch<S>, allow_enharmonic: bool) -> Option<Degree<'_, S>> {
         let p0 = p.with_period(0);
         let i = self.degrees.iter().position(|x| {
@@ -131,7 +128,6 @@ impl<S: PitchSystem> Scale<S> {
     }
 
     /// Compare only the interval structure, ignoring the root.
-    #[must_use]
     pub fn interval_equals(&self, other: &Scale<S>) -> bool {
         self.intervals.len() == other.intervals.len()
             && self

@@ -21,3 +21,5 @@ pub use pitch::Pitch;
 pub use scale::Scale;
 pub use system::{PitchSystem, ET12};
 pub use tuning::{EqualTemperament, Tuning};
+
+pub use passacaglia_common::Rational;

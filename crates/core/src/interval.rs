@@ -15,7 +15,7 @@ pub struct Interval<S: PitchSystem> {
     pub steps: usize,
     pub distance: Rational,
     pub sign: i8,
-    pub _system: PhantomData<S>,
+    _system: PhantomData<S>,
 }
 
 impl<S: PitchSystem> Clone for Interval<S> {
@@ -53,7 +53,6 @@ impl<S: PitchSystem> Interval<S> {
     }
 
     /// Same sign and same distance, ignoring steps.
-    #[must_use]
     pub fn equals_enharmonically(&self, other: &Interval<S>) -> bool {
         self.sign == other.sign && self.distance == other.distance
     }
@@ -116,13 +115,11 @@ impl<S: PitchSystem> Interval<S> {
     }
 
     /// `other` equals `this`, or reduces to the same simple interval and is larger.
-    #[must_use]
     pub fn matches(&self, other: &Interval<S>) -> bool {
         other.to_simple(None) == self.to_simple(None) && other.distance >= self.distance
     }
 
     /// Like [`Interval::matches`], but enharmonically (ignoring steps).
-    #[must_use]
     pub fn matches_enharmonically(&self, other: &Interval<S>) -> bool {
         other
             .to_simple(None)

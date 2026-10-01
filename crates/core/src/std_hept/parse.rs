@@ -1,8 +1,34 @@
-use crate::ParseError;
+use std::fmt;
+
+use num_rational::Ratio;
+
+use passacaglia_common::Rational;
+
+use crate::interval::Interval;
+use crate::pitch::Pitch;
+use crate::std_hept::system::StandardHeptatonic;
+
+/// An error produced when a literal string does not conform to the grammar.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParseError(pub String);
+
+impl ParseError {
+    pub fn new(message: impl Into<String>) -> Self {
+        ParseError(message.into())
+    }
+}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for ParseError {}
 
 /// Interval quality, as used in standard heptatonic interval naming.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Quality {
+pub(crate) enum Quality {
     Perfect,
     Major,
     Minor,
@@ -11,9 +37,7 @@ pub enum Quality {
 }
 
 impl Quality {
-    /// The single-letter abbreviation (`P`, `M`, `m`, `A`, `d`).
-    #[must_use]
-    pub fn abbr(self) -> char {
+    pub(crate) fn abbr(self) -> char {
         match self {
             Quality::Perfect => 'P',
             Quality::Major => 'M',
@@ -23,8 +47,7 @@ impl Quality {
         }
     }
 
-    #[must_use]
-    pub fn from_abbr(c: u8) -> Option<Quality> {
+    pub(crate) fn from_abbr(c: u8) -> Option<Quality> {
         Some(match c {
             b'P' => Quality::Perfect,
             b'M' => Quality::Major,
@@ -35,9 +58,7 @@ impl Quality {
         })
     }
 
-    /// The full quality name (`perfect`, `major`, `minor`, `augmented`, `diminished`).
-    #[must_use]
-    pub fn word(self) -> &'static str {
+    pub(crate) fn word(self) -> &'static str {
         match self {
             Quality::Perfect => "perfect",
             Quality::Major => "major",
@@ -47,28 +68,6 @@ impl Quality {
         }
     }
 }
-
-/// The parsed components of a pitch literal.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct PitchParts {
-    pub index: usize,
-    pub acci_num: i64,
-    pub acci_den: i64,
-    pub period: i32,
-}
-
-/// The parsed components of an interval literal.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct IntervalParts {
-    pub steps: usize,
-    pub distance_num: i64,
-    pub distance_den: i64,
-    pub sign: i8,
-}
-
-// ---------------------------------------------------------------------------
-// Interval data table (indexed by simple steps 0..=7).
-// ---------------------------------------------------------------------------
 
 const INTERVAL_DATA: [&[(i64, Quality)]; 8] = [
     &[(0, Quality::Perfect), (1, Quality::Augmented)], // unisons
@@ -113,15 +112,9 @@ const INTERVAL_DATA: [&[(i64, Quality)]; 8] = [
     ], // octaves
 ];
 
-/// The `(semitones, quality)` rows for the given number of simple steps.
-#[must_use]
-pub fn interval_data(simple_steps: usize) -> &'static [(i64, Quality)] {
+pub(crate) fn interval_data(simple_steps: usize) -> &'static [(i64, Quality)] {
     INTERVAL_DATA.get(simple_steps).copied().unwrap_or(&[])
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 fn gcd(a: u64, b: u64) -> u64 {
     if b == 0 {
@@ -153,25 +146,20 @@ fn split_trailing_digits(s: &str) -> (&str, &str) {
     (&s[..i], &s[i..])
 }
 
-// ---------------------------------------------------------------------------
-// Accidentals
-// ---------------------------------------------------------------------------
-
 /// Parse an accidental expression.
 ///
 /// Grammar: `''` / `'n'`, `s+`, `f+`, or `(\d+)(/(\d+))?(s|f)+`.
-/// Returns the reduced `(numer, denom)` of the accidental offset.
-pub fn parse_accidental(s: &str) -> Result<(i64, i64), ParseError> {
+pub(crate) fn parse_accidental(s: &str) -> Result<Rational, ParseError> {
     if s.is_empty() || s == "n" {
-        return Ok((0, 1));
+        return Ok(Ratio::new(0, 1));
     }
 
     let bytes = s.as_bytes();
     if !bytes.is_empty() && bytes.iter().all(|&b| b == b's') {
-        return Ok((bytes.len() as i64, 1));
+        return Ok(Ratio::new(bytes.len() as i64, 1));
     }
     if !bytes.is_empty() && bytes.iter().all(|&b| b == b'f') {
-        return Ok((-(bytes.len() as i64), 1));
+        return Ok(Ratio::new(-(bytes.len() as i64), 1));
     }
 
     // ^(\d+)(?:/(\d+))?(s|f)+$
@@ -214,17 +202,11 @@ pub fn parse_accidental(s: &str) -> Result<(i64, i64), ParseError> {
     }
 
     let sign = if last == b's' { 1 } else { -1 };
-    let num = magnitude as i64 * sign;
-    let den = den as i64;
-    Ok(reduce(num, den))
+    Ok(Ratio::new(magnitude as i64 * sign, den as i64))
 }
 
-// ---------------------------------------------------------------------------
-// Rational
-// ---------------------------------------------------------------------------
-
 /// Parse a rational literal (`^([+-]?\d+)(?:/(\d+))?$`), reduced.
-pub fn parse_rational(s: &str) -> Result<(i64, i64), ParseError> {
+pub(crate) fn parse_rational(s: &str) -> Result<(i64, i64), ParseError> {
     let bytes = s.as_bytes();
     let n = bytes.len();
     let mut i = 0;
@@ -269,12 +251,8 @@ pub fn parse_rational(s: &str) -> Result<(i64, i64), ParseError> {
     Ok(reduce(num, den))
 }
 
-// ---------------------------------------------------------------------------
-// Pitch
-// ---------------------------------------------------------------------------
-
 /// Parse a pitch literal: `^([a-g])([\d\/sf]*?)(\d+)?$` (case-insensitive).
-pub fn parse_pitch(s: &str) -> Result<PitchParts, ParseError> {
+pub(crate) fn parse_pitch(s: &str) -> Result<Pitch<StandardHeptatonic>, ParseError> {
     let lower = s.to_ascii_lowercase();
     let bytes = lower.as_bytes();
     if bytes.is_empty() {
@@ -293,7 +271,7 @@ pub fn parse_pitch(s: &str) -> Result<PitchParts, ParseError> {
     };
 
     let (acc, oct) = split_trailing_digits(&lower[1..]);
-    let (acci_num, acci_den) = parse_accidental(acc)?;
+    let acci = parse_accidental(acc)?;
 
     let period = if oct.is_empty() {
         0
@@ -305,20 +283,11 @@ pub fn parse_pitch(s: &str) -> Result<PitchParts, ParseError> {
         o as i32
     };
 
-    Ok(PitchParts {
-        index,
-        acci_num,
-        acci_den,
-        period,
-    })
+    Ok(Pitch::new(index, acci, period))
 }
 
-// ---------------------------------------------------------------------------
-// Interval
-// ---------------------------------------------------------------------------
-
 /// Parse an interval abbreviation: `^([+-])?([PMmAd])(\d+)([+-]?\d+(?:\/\d+)?)?$`.
-pub fn parse_interval(s: &str) -> Result<IntervalParts, ParseError> {
+pub(crate) fn parse_interval(s: &str) -> Result<Interval<StandardHeptatonic>, ParseError> {
     let bytes = s.as_bytes();
     let n = bytes.len();
     let mut i = 0;
@@ -373,10 +342,5 @@ pub fn parse_interval(s: &str) -> Result<IntervalParts, ParseError> {
     let (rem_num, rem_den) = remainder;
     let (num, den) = reduce(rem_num + whole * rem_den, rem_den);
 
-    Ok(IntervalParts {
-        steps: steps as usize,
-        distance_num: num,
-        distance_den: den,
-        sign,
-    })
+    Ok(Interval::new(steps as usize, Ratio::new(num, den), sign))
 }

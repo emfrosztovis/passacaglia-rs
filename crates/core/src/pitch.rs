@@ -16,7 +16,7 @@ pub struct Pitch<S: PitchSystem> {
     pub index: usize,
     pub acci: Rational,
     pub period: i32,
-    pub _system: PhantomData<S>,
+    _system: PhantomData<S>,
 }
 
 impl<S: PitchSystem> Clone for Pitch<S> {
@@ -54,7 +54,6 @@ impl<S: PitchSystem> Pitch<S> {
     }
 
     /// The pitch-class ordinal of this pitch.
-    #[must_use]
     pub fn ord(&self) -> Rational {
         self.acci
             + rational(i64::from(self.period) * S::N_PITCH_CLASSES as i64)
@@ -62,13 +61,11 @@ impl<S: PitchSystem> Pitch<S> {
     }
 
     /// The difference to `other` in pitch-class units. Negative if `this` is higher.
-    #[must_use]
     pub fn distance_to(&self, other: &Pitch<S>) -> Rational {
         other.ord() - self.ord()
     }
 
     /// The difference to `other` in degree steps, ignoring accidentals.
-    #[must_use]
     pub fn steps_to(&self, other: &Pitch<S>) -> i64 {
         (i64::from(other.period) * S::N_DEGREES as i64 + other.index as i64)
             - (i64::from(self.period) * S::N_DEGREES as i64 + self.index as i64)
@@ -114,7 +111,6 @@ impl<S: PitchSystem> Pitch<S> {
         Pitch::<S>::new(self.index, self.acci, self.period + p)
     }
 
-    #[must_use]
     pub fn enharmonically_equals(&self, other: &Pitch<S>) -> bool {
         self.ord() == other.ord()
     }

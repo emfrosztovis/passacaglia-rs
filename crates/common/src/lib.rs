@@ -10,4 +10,4 @@ mod rational;
 mod utils;
 
 pub use rational::{rational, rational_to_string, rational_value, Rational};
-pub use utils::{modulo, rotate_array};
+pub use utils::rotate_array;

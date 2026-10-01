@@ -3,12 +3,12 @@ use std::str::FromStr;
 
 use num_traits::Signed;
 
-use passacaglia_common::{rational, Rational};
-use passacaglia_parser::{parse_pitch, ParseError};
+use passacaglia_common::rational;
 
 use crate::interval::Interval;
 use crate::pitch::Pitch;
 use crate::std_hept::accidental;
+use crate::std_hept::parse::{parse_pitch, ParseError};
 use crate::std_hept::system::StandardHeptatonic;
 use crate::system::PitchSystem;
 
@@ -16,12 +16,7 @@ impl FromStr for Pitch<StandardHeptatonic> {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let p = parse_pitch(s)?;
-        Ok(Pitch::new(
-            p.index,
-            Rational::new(p.acci_num, p.acci_den),
-            p.period,
-        ))
+        parse_pitch(s)
     }
 }
 

@@ -7,6 +7,7 @@ use crate::interval::Interval;
 use crate::pitch::Pitch;
 use crate::scale::Scale;
 use crate::std_hept::accidental;
+use crate::std_hept::parse;
 use crate::std_hept::system::StandardHeptatonic;
 use crate::system::PitchSystem;
 
@@ -22,7 +23,7 @@ impl Scale<StandardHeptatonic> {
         let mut degrees = vec![root];
         let mut current = root;
         for (i, int) in intervals.iter().enumerate() {
-            debug_assert!(int.sign == 1);
+            debug_assert_eq!(int.sign, 1);
             current = current.add(int);
             if i == intervals.len() - 1 {
                 debug_assert_eq!(
@@ -83,7 +84,7 @@ impl Scale<StandardHeptatonic> {
             (idx, &ex[i..])
         };
 
-        let acci = accidental::parse(rest).ok()?;
+        let acci = parse::parse_accidental(rest).ok()?;
         Some(self.at(idx, acci))
     }
 }

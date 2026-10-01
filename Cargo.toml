@@ -2,7 +2,6 @@
 resolver = "2"
 members = [
     "crates/common",
-    "crates/parser",
     "crates/core",
     "crates/macros",
 ]
@@ -21,7 +20,6 @@ quote = "1"
 syn = "2"
 
 passacaglia-common = { path = "crates/common" }
-passacaglia-parser = { path = "crates/parser" }
 passacaglia-core = { path = "crates/core" }
 passacaglia-macros = { path = "crates/macros" }
 
@@ -39,4 +37,5 @@ cast_precision_loss = "allow"
 missing_errors_doc = "allow"
 missing_panics_doc = "allow"
 wildcard_imports = "allow"
+must_use_candidate = "allow"
 
