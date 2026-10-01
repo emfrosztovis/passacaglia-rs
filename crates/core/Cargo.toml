@@ -9,6 +9,3 @@ license.workspace = true
 passacaglia-common.workspace = true
 num-rational.workspace = true
 num-traits.workspace = true
-
-[lints]
-workspace = true

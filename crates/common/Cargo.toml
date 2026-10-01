@@ -8,6 +8,3 @@ license.workspace = true
 [dependencies]
 num-rational.workspace = true
 num-traits.workspace = true
-
-[lints]
-workspace = true

@@ -20,6 +20,7 @@ impl<T: InstantaneousElement> EventContainer<T> {
         EventContainer { elements }
     }
 
+    #[must_use]
     pub fn elements(&self) -> &[Located<T>] {
         &self.elements
     }

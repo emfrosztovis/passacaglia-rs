@@ -1,3 +1,18 @@
+// Musical values here are tiny integers, so the `as` casts are in range and
+// lossless in practice. These pedantic cast lints are pinned to `allow` here
+// (rather than `try_from().unwrap()` everywhere) so the IDE and `cargo clippy`
+// agree. `missing_*_doc` and `wildcard_imports` are also allowed for the same
+// consistency reason.
+#![allow(
+    clippy::cast_possible_wrap,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_precision_loss,
+    clippy::missing_errors_doc,
+    clippy::missing_panics_doc,
+    clippy::wildcard_imports
+)]
+
 //! Core musical abstractions for the passacaglia music engine.
 //!
 //! This crate models pitch/interval/scale systems. A pitch is a

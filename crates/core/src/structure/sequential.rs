@@ -21,6 +21,7 @@ impl<T: DurationalElement> SequentialContainer<T> {
         SequentialContainer { elements, starts }
     }
 
+    #[must_use]
     pub fn elements(&self) -> &[T] {
         &self.elements
     }
