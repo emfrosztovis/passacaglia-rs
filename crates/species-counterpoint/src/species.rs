@@ -250,7 +250,7 @@ fn later(c: MeasureCursor<'_>, _s: &Score) -> bool {
 
 fn hdiff(c: MeasureCursor<'_>, name: &str) -> bool {
     c.prev_global()
-        .is_some_and(|p| p.schema_name() != Some(name))
+        .is_none_or(|p| p.schema_name() != Some(name))
 }
 
 fn vdiff(c: MeasureCursor<'_>, score: &Score, name: &str) -> bool {
