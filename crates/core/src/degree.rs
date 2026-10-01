@@ -8,8 +8,7 @@ use crate::system::PitchSystem;
 
 /// A degree within a [`Scale`]: an index, accidental, and period.
 ///
-/// Borrows its scale; it is `Copy` and structurally equal by `(index, acci, period)`,
-/// matching the original `hash()` (which ignored the scale).
+/// Borrows its scale; it is `Copy` and structurally equal by `(index, acci, period)`.
 #[derive(Debug)]
 pub struct Degree<'a, S: PitchSystem> {
     pub scale: &'a Scale<S>,

@@ -109,7 +109,18 @@ impl FromStr for Interval<StandardHeptatonic> {
 }
 
 impl Interval<StandardHeptatonic> {
-    /// Parse an interval abbreviation, or `None` on failure.
+    /// Parses an interval abbreviation in the format of sign (optional) + quality +
+    /// number + further semitone differences (optional). Available qualities are `P`
+    /// (perfect), `M` (major), `m` (minor), `A` (augmented) and `d` (diminished).
+    ///
+    /// "Further semitone differences" consists of a sign (`+` or `-`) and an
+    /// integer or a fraction. For example, a doubly augmented third is `A3+1`. In
+    /// this way you can also express complex intervals that have no official
+    /// names, such as `d12+1/4`.
+    ///
+    /// The algorithm does *not* distinguish between intervals with the same steps
+    /// and same semitones, such as `m3+1/2` and `M3-1/2`. They parse to the same
+    /// interval object.
     #[must_use]
     pub fn parse(s: &str) -> Option<Self> {
         Self::from_str(s).ok()

@@ -7,14 +7,16 @@ use crate::interval::Interval;
 use crate::pitch::Pitch;
 use crate::system::PitchSystem;
 
-/// A scale: an ordered list of degrees and the intervals between them.
-///
-/// Degrees are non-decreasing and span less than the system's period; the first
-/// degree is the root. Intervals are non-negative and include the wrapping
-/// interval from the last degree back to the root.
+/// Represents a scale in a pitch system, starting from a given pitch class (the
+/// root) and consisting of several degrees. Notably, we allow enharmonically
+/// equal tones in the scale. This is to accomodate spelling alternatives (as in
+/// the chromatic scale).
 #[derive(Debug)]
 pub struct Scale<S: PitchSystem> {
+    /// List of degrees. Always non-decreasing and spans less than the system's
+    /// period. The first degree is the root.
     pub degrees: Vec<Pitch<S>>,
+    /// List of intervals. Always nonnegative.
     pub intervals: Vec<Interval<S>>,
 }
 
@@ -55,7 +57,7 @@ impl<S: PitchSystem> Scale<S> {
         self.degrees[0]
     }
 
-    /// The degree at `i`, optionally with an accidental.
+    /// Get the degree at an index and optionally with an accidental.
     #[must_use]
     pub fn at(&self, i: usize, acci: Rational) -> Degree<'_, S> {
         Degree::new(self, i, acci, 0)

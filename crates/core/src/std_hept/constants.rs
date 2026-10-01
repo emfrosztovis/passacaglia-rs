@@ -97,7 +97,21 @@ pub mod scales {
 
         pub static MAJOR: LazyLock<Scale> = LazyLock::new(|| (*C_MAJOR).clone());
         pub static HARMONIC_MINOR: LazyLock<Scale> = LazyLock::new(|| (*C_HARMONIC_MINOR).clone());
+
+        /// Chromatic scale with enharmonics.
+        ///
+        /// ```text
+        ///  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16
+        ///  C Cs Df  D Ds Ef  E  F Fs Gf  G Gs Af  A As Bf  B
+        /// ```
         pub static CHROMATIC: LazyLock<Scale> = LazyLock::new(|| (*C_CHROMATIC).clone());
+
+        /// Includes all altered tones as degrees.
+        ///
+        /// ```text
+        ///  0  1  2  3  4  5  6  7  8
+        ///  C  D Ef  F  G Af  A Bf  B
+        /// ```
         pub static COMPLETE_MINOR: LazyLock<Scale> = LazyLock::new(|| (*C_COMPLETE_MINOR).clone());
         pub static ASCENDING_MINOR: LazyLock<Scale> =
             LazyLock::new(|| (*C_ASCENDING_MINOR).clone());

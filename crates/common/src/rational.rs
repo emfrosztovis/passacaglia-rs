@@ -1,32 +1,22 @@
 use num_rational::Ratio;
 
-/// An exact rational number.
-///
-/// The original TypeScript `Rational` stored `num`/`den` as IEEE-754 `f64`s and
-/// performed lossy float-to-rational conversion via `Rational::from`. We replace
-/// it with [`num_rational::Ratio<i64>`], which is always reduced on construction,
-/// `Copy`, and fully ordered/hashable. All musical values in this domain are tiny
-/// integers, so `i64` is more than sufficient.
+/// An exact rational number, always reduced on construction and `Copy`.
 pub type Rational = Ratio<i64>;
 
 /// Construct an integer [`Rational`] as a constant.
-///
-/// This is the replacement for the removed `Rational::from` float path; every
-/// literal must be written exactly.
 #[must_use]
 pub const fn rational(n: i64) -> Rational {
     Ratio::new_raw(n, 1)
 }
 
 /// Convert a [`Rational`] to its nearest `f64` value.
-///
-/// Only for display or external (floating-point) APIs — never for control flow.
 #[must_use]
 pub fn rational_value(r: Rational) -> f64 {
     *r.numer() as f64 / *r.denom() as f64
 }
 
-/// Format a [`Rational`] following the original `Rational::toString` options.
+/// Format a [`Rational`] as a string, optionally always-signed or as a mixed
+/// fraction.
 #[must_use]
 pub fn rational_to_string(r: Rational, always_signed: bool, mixed_fraction: bool) -> String {
     let sign = if *r.numer() < 0 {

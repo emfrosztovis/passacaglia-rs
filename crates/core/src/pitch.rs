@@ -7,14 +7,21 @@ use passacaglia_common::{rational, Rational};
 use crate::interval::Interval;
 use crate::system::{PitchSystem, ET12};
 
-/// A musical pitch: a `(degree index, accidental, period)` triple.
+/// Represents a musical pitch in a scale system: a 3-tuple
+/// (degree index, accidental, period index). It can also represent a pitch class
+/// in some contexts, where the period number is ignored.
 ///
 /// Keeping the degree and accidental distinct from the sounding ordinal lets a
-/// spelling like `C#` stay distinct from `Db`. `S` is a zero-sized marker.
+/// spelling like `C#` stay distinct from `Db`. `S` is a zero-sized marker for the
+/// pitch system.
 #[derive(Debug)]
 pub struct Pitch<S: PitchSystem> {
+    /// A nonnegative integer representing the degree index.
     pub index: usize,
+    /// The accidental attached to the pitch.
     pub acci: Rational,
+    /// An integer representing the period index. Ignored in contexts where this
+    /// doesn't exist (pitch classes).
     pub period: i32,
     _system: PhantomData<S>,
 }
@@ -53,7 +60,7 @@ impl<S: PitchSystem> Pitch<S> {
         }
     }
 
-    /// The pitch-class ordinal of this pitch.
+    /// Gets the ordinal number of this pitch.
     #[must_use]
     pub fn ord(&self) -> Rational {
         self.acci
@@ -61,20 +68,24 @@ impl<S: PitchSystem> Pitch<S> {
             + S::DEGREE_OFFSETS[self.index]
     }
 
-    /// The difference to `other` in pitch-class units. Negative if `this` is higher.
+    /// Calculates the difference between pitches in pitch class units.
+    /// If `this` is higher than `other`, a negative number will be returned.
     #[must_use]
     pub fn distance_to(&self, other: &Pitch<S>) -> Rational {
         other.ord() - self.ord()
     }
 
-    /// The difference to `other` in degree steps, ignoring accidentals.
+    /// Calculates the difference between pitches in steps, disregarding
+    /// accidental marks. If `this` is higher than `other`, a negative number
+    /// will be returned.
     #[must_use]
     pub fn steps_to(&self, other: &Pitch<S>) -> i64 {
         (i64::from(other.period) * S::N_DEGREES as i64 + other.index as i64)
             - (i64::from(self.period) * S::N_DEGREES as i64 + self.index as i64)
     }
 
-    /// The interval from `this` to `other` (negative if `this` is higher).
+    /// Get the interval from `this` to `other`. It will be negative if `this` is
+    /// higher than `other`.
     #[must_use]
     pub fn interval_to(&self, other: &Pitch<S>) -> Interval<S> {
         let steps = self.steps_to(other);

@@ -21,13 +21,29 @@ impl FromStr for Pitch<StandardHeptatonic> {
 }
 
 impl Pitch<StandardHeptatonic> {
-    /// Parse a pitch literal, or `None` on failure.
+    /// Parses a string expression of pitch, in the format of note name +
+    /// accidental + single-digit octave number.
+    ///
+    /// For accidentals, use `s` for sharps and `f` for flats. For more than one
+    /// sharps or flats, either duplicate the letter or add a number like `3f`.
+    /// For microtonal accidentals, write out a fraction like `3/4s`. An empty
+    /// accidental or `n` is parsed as `0` (natural).
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// parse("c")      // C0 natural
+    /// parse("c4")     // C4 natural
+    /// parse("gff3")   // G3 double-flat
+    /// parse("g3f3")   // G3 triple-flat
+    /// parse("e2/3s6") // E6 two-thirds sharp
+    /// ```
     #[must_use]
     pub fn parse(s: &str) -> Option<Self> {
         Self::from_str(s).ok()
     }
 
-    /// The positive simple interval between two pitches (period ignored).
+    /// Returns the positive simple interval between two pitches.
     #[must_use]
     pub fn absolute_simple_interval_to(&self, b: &Self) -> Interval<StandardHeptatonic> {
         let a = self.with_period(0);
@@ -35,7 +51,8 @@ impl Pitch<StandardHeptatonic> {
         a.interval_to(&b).abs()
     }
 
-    /// Rewrite using at most double accidentals (`abs(acci) <= 2`).
+    /// Normalize the pitch so that it uses at most double accidentals
+    /// (i.e. `acci.abs()` < 2).
     #[must_use]
     pub fn normalize(&self) -> Self {
         let acci = self.acci;

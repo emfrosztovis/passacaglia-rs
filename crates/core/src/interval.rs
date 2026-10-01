@@ -6,14 +6,17 @@ use passacaglia_common::{rational, Rational};
 
 use crate::system::PitchSystem;
 
-/// A signed interval: a `(steps, distance, sign)` triple.
-///
-/// `steps` is a non-negative degree count; `distance` is a non-negative
-/// rational pitch-class distance; `sign` is `1` or `-1`.
+/// Represents a signed musical interval in a scale system: a 3-tuple
+/// (steps, distance, sign).
 #[derive(Debug)]
 pub struct Interval<S: PitchSystem> {
+    /// A nonnegative integer representing the number of steps between the two
+    /// pitches. E.g. 0 means they share the same degree, 1 means the higher pitch
+    /// is the next degree.
     pub steps: usize,
+    /// Number of subdivisions between the two pitches (nonnegative).
     pub distance: Rational,
+    /// Sign of the interval.
     pub sign: i8,
     _system: PhantomData<S>,
 }
@@ -85,7 +88,8 @@ impl<S: PitchSystem> Interval<S> {
         self.add(&offset)
     }
 
-    /// Reduce a compound interval (spanning more than one period) to a simple one.
+    /// Reduce compound intervals (i.e. spanning more than one period in the
+    /// system) to simple intervals.
     #[must_use]
     pub fn to_simple(&self, preserve_up_to_steps: Option<usize>) -> Self {
         if self.steps < S::N_DEGREES {
@@ -115,13 +119,15 @@ impl<S: PitchSystem> Interval<S> {
         Interval::new(new_steps, new_distance, self.sign)
     }
 
-    /// `other` equals `this`, or reduces to the same simple interval and is larger.
+    /// Returns true if `other` equals `this`, or `other` is larger but reduces
+    /// to the same simple interval as `this`.
     #[must_use]
     pub fn matches(&self, other: &Interval<S>) -> bool {
         other.to_simple(None) == self.to_simple(None) && other.distance >= self.distance
     }
 
-    /// Like [`Interval::matches`], but enharmonically (ignoring steps).
+    /// Returns true if `other` equals `this` enharmonically, or `other` is larger
+    /// but reduces to an enharmonically equivalent simple interval as `this`.
     #[must_use]
     pub fn matches_enharmonically(&self, other: &Interval<S>) -> bool {
         other

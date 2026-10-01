@@ -1,6 +1,4 @@
 /// Rotate a slice by `n` steps. Positive `n` means left-shift, negative right-shift.
-///
-/// This is the replacement for the original `rotateArray`, using [`slice::rotate_left`].
 pub fn rotate_array<T: Clone>(list: &[T], n: i64) -> Vec<T> {
     if list.is_empty() {
         return Vec::new();
