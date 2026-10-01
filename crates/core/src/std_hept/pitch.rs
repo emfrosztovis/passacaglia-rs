@@ -51,6 +51,13 @@ impl Pitch<StandardHeptatonic> {
         a.interval_to(&b).abs()
     }
 
+    /// Format the pitch class (letter name + accidental), omitting the octave.
+    #[must_use]
+    pub fn to_class_string(&self) -> String {
+        const NAMES: [&str; 7] = ["c", "d", "e", "f", "g", "a", "b"];
+        format!("{}{}", NAMES[self.index], accidental::print(self.acci))
+    }
+
     /// Normalize the pitch so that it uses at most double accidentals
     /// (i.e. `acci.abs()` < 2).
     #[must_use]

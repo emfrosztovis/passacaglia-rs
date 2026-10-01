@@ -137,7 +137,7 @@ impl std::fmt::Display for Chord {
             "{}",
             self.tones
                 .iter()
-                .map(|x| format!("{}", x.with_period(0)))
+                .map(Pitch::to_class_string)
                 .collect::<Vec<_>>()
                 .join("|")
         )
