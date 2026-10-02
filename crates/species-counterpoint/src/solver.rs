@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap};
 use std::rc::Rc;
 
-use passacaglia_common::rational_value;
+use passacaglia_common::{rational_value, Rational};
 use passacaglia_core::structure::Container;
 
 use crate::context::CounterpointContext;
@@ -63,7 +63,7 @@ fn find_writable(score: &Score, ctx: &CounterpointContext, measure_index: usize)
     }
 
     let mut earliest = None;
-    let mut time = f64::INFINITY;
+    let mut time: Option<Rational> = None;
     for (voice_index, v) in score.voices.iter().enumerate().rev() {
         if !matches!(v, Voice::Counterpoint(_)) {
             continue;
@@ -71,12 +71,12 @@ fn find_writable(score: &Score, ctx: &CounterpointContext, measure_index: usize)
         let Some(m) = v.cursor(measure_index) else {
             continue;
         };
-        if let Some(wp) = m.writable_position() {
-            let wv = rational_value(wp);
-            if wv < time {
-                time = wv;
-                earliest = Some(voice_index);
-            }
+        let Some(wp) = m.writable_position() else {
+            continue;
+        };
+        if time.is_none_or(|t| wp < t) {
+            time = Some(wp);
+            earliest = Some(voice_index);
         }
     }
     earliest.map(|voice_index| Target::Measure { voice_index })

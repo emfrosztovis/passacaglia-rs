@@ -1,7 +1,9 @@
-use passacaglia_common::rational_value;
+use num_traits::Signed;
+use passacaglia_common::rational;
 use passacaglia_core::std_hept::Pitch;
 
 use crate::context::{Candidates, CounterpointContext};
+use crate::rules::utils::note_pitch;
 use crate::score::Score;
 use crate::voice::{NonHarmonicType, NoteCursor};
 
@@ -14,22 +16,12 @@ pub fn enforce_neighbor_tones<'a>(
     _ty: Option<NonHarmonicType>,
 ) -> Candidates<Pitch> {
     let mut c = c.expect("candidates initialized");
-    let Some(p1) = cur.prev_global() else {
-        return c;
-    };
-    let Some(_prev) = p1.pitch else {
-        return c;
-    };
-    if p1.non_harmonic != Some(NonHarmonicType::Neighbor) {
-        return c;
+    if let Some((p1, _)) = note_pitch(cur.prev_global())
+        && p1.non_harmonic == Some(NonHarmonicType::Neighbor)
+        && let Some((_, prev2)) = note_pitch(p1.prev_global())
+    {
+        c.filter(|p, _| *p == prev2);
     }
-    let Some(p2) = p1.prev_global() else {
-        return c;
-    };
-    let Some(prev2) = p2.pitch else {
-        return c;
-    };
-    c.filter(|p, _| *p == prev2);
     c
 }
 
@@ -42,18 +34,13 @@ pub fn make_neighbor_tone<'a>(
     _ty: Option<NonHarmonicType>,
 ) -> Candidates<Pitch> {
     let mut c = c.expect("candidates initialized");
-    let Some(p1) = cur.prev_global() else {
-        return Candidates::new();
-    };
-    let Some(prev) = p1.pitch else {
-        return Candidates::new();
-    };
-    if p1.non_harmonic.is_some() {
-        return Candidates::new();
+    if let Some((p1, prev)) = note_pitch(cur.prev_global())
+        && p1.non_harmonic.is_none()
+    {
+        c.filter(|p, _| {
+            let dist = prev.distance_to(p).abs();
+            prev.steps_to(p).unsigned_abs() <= 1 && dist > rational(0) && dist <= rational(2)
+        });
     }
-    c.filter(|p, _| {
-        let dist = rational_value(prev.distance_to(p)).abs();
-        prev.steps_to(p).unsigned_abs() <= 1 && dist > 0.0 && dist <= 2.0
-    });
     c
 }

@@ -2,11 +2,11 @@ use std::sync::LazyLock;
 
 use passacaglia_common::rational;
 
-use crate::std_hept::system::StandardHeptatonic;
+use crate::std_hept::system::StdHeptatonic;
 
-type Pitch = crate::pitch::Pitch<StandardHeptatonic>;
-type Interval = crate::interval::Interval<StandardHeptatonic>;
-type Scale = crate::scale::Scale<StandardHeptatonic>;
+type Pitch = crate::pitch::Pitch<StdHeptatonic>;
+type Interval = crate::interval::Interval<StdHeptatonic>;
+type Scale = crate::scale::Scale<StdHeptatonic>;
 
 /// The natural pitch classes (period 0).
 pub struct PitchClasses {

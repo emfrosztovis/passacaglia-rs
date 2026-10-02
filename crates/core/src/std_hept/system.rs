@@ -12,9 +12,9 @@ use crate::system::{PitchSystem, ET12};
 ///  0  1  2  3  4  5  6  7  8  9 10 11
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct StandardHeptatonic;
+pub struct StdHeptatonic;
 
-impl PitchSystem for StandardHeptatonic {
+impl PitchSystem for StdHeptatonic {
     const PERIOD_RATIO: Rational = Ratio::new_raw(2, 1);
     const N_PITCH_CLASSES: usize = 12;
     const N_DEGREES: usize = 7;
@@ -29,4 +29,4 @@ impl PitchSystem for StandardHeptatonic {
     ];
 }
 
-impl ET12 for StandardHeptatonic {}
+impl ET12 for StdHeptatonic {}

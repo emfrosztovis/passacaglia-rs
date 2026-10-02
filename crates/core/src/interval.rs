@@ -95,10 +95,10 @@ impl<S: PitchSystem> Interval<S> {
         if self.steps < S::N_DEGREES {
             return *self;
         }
-        if let Some(p) = preserve_up_to_steps {
-            if self.steps <= p {
-                return *self;
-            }
+        if let Some(p) = preserve_up_to_steps
+            && self.steps <= p
+        {
+            return *self;
         }
 
         let preserve_periods = preserve_up_to_steps.map_or(0, |p| p / S::N_DEGREES);
@@ -108,11 +108,11 @@ impl<S: PitchSystem> Interval<S> {
         let mut periods = periods;
         let mut new_steps = self.steps - periods * S::N_DEGREES;
 
-        if let Some(p) = preserve_up_to_steps {
-            if new_steps > p {
-                periods += 1;
-                new_steps -= S::N_DEGREES;
-            }
+        if let Some(p) = preserve_up_to_steps
+            && new_steps > p
+        {
+            periods += 1;
+            new_steps -= S::N_DEGREES;
         }
 
         let new_distance = self.distance - rational(periods as i64 * S::N_PITCH_CLASSES as i64);

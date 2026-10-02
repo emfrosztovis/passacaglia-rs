@@ -96,21 +96,21 @@ fn measure<W: Write>(writer: &mut Writer<W>, s: &Score, m: MeasureCursor<'_>) ->
         .create_element("measure")
         .with_attribute(("number", number.as_str()))
         .write_inner_content(|w| {
-            if is_last {
-                if let Some(chord) = chord {
-                    let words = chord.to_string();
-                    if !words.is_empty() {
-                        w.create_element("direction")
-                            .with_attribute(("placement", "below"))
-                            .write_inner_content(|w| {
-                                w.create_element("direction-type").write_inner_content(|w| {
-                                    w.create_element("words")
-                                        .write_text_content(BytesText::new(&words))?;
-                                    Ok(())
-                                })?;
+            if is_last
+                && let Some(chord) = chord
+            {
+                let words = chord.to_string();
+                if !words.is_empty() {
+                    w.create_element("direction")
+                        .with_attribute(("placement", "below"))
+                        .write_inner_content(|w| {
+                            w.create_element("direction-type").write_inner_content(|w| {
+                                w.create_element("words")
+                                    .write_text_content(BytesText::new(&words))?;
                                 Ok(())
                             })?;
-                    }
+                            Ok(())
+                        })?;
                 }
             }
 

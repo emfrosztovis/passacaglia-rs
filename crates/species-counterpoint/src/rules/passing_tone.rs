@@ -1,7 +1,9 @@
-use passacaglia_common::rational_value;
+use num_traits::Signed;
+use passacaglia_common::rational;
 use passacaglia_core::std_hept::Pitch;
 
 use crate::context::{Candidates, CounterpointContext};
+use crate::rules::utils::note_pitch;
 use crate::score::Score;
 use crate::voice::{NonHarmonicType, NoteCursor};
 
@@ -14,30 +16,19 @@ pub fn enforce_passing_tones<'a>(
     _ty: Option<NonHarmonicType>,
 ) -> Candidates<Pitch> {
     let mut c = c.expect("candidates initialized");
-    let Some(p1) = cur.prev_global() else {
-        return c;
-    };
-    let Some(prev) = p1.pitch else {
-        return c;
-    };
-    if p1.non_harmonic != Some(NonHarmonicType::PassingTone) {
-        return c;
+    if let Some((p1, prev)) = note_pitch(cur.prev_global())
+        && p1.non_harmonic == Some(NonHarmonicType::PassingTone)
+        && let Some((_, prev2)) = note_pitch(p1.prev_global())
+    {
+        let o2 = prev2.ord();
+        let o1 = prev.ord();
+        c.filter(|p, _| {
+            let op = p.ord();
+            (o1 - op).signum() == (o2 - o1).signum()
+                && prev.steps_to(p).unsigned_abs() <= 1
+                && prev.distance_to(p).abs() > rational(0)
+        });
     }
-    let Some(p2) = p1.prev_global() else {
-        return c;
-    };
-    let Some(prev2) = p2.pitch else {
-        return c;
-    };
-
-    let o2 = rational_value(prev2.ord());
-    let o1 = rational_value(prev.ord());
-    c.filter(|p, _| {
-        let op = rational_value(p.ord());
-        (o1 - op).signum() == (o2 - o1).signum()
-            && prev.steps_to(p).unsigned_abs() <= 1
-            && rational_value(prev.distance_to(p)).abs() > 0.0
-    });
     c
 }
 
@@ -50,15 +41,11 @@ pub fn make_passing_tone<'a>(
     _ty: Option<NonHarmonicType>,
 ) -> Candidates<Pitch> {
     let mut c = c.expect("candidates initialized");
-    let Some(p1) = cur.prev_global() else {
-        return Candidates::new();
-    };
-    let Some(prev) = p1.pitch else {
-        return Candidates::new();
-    };
-    c.filter(|p, _| {
-        let dist = rational_value(prev.distance_to(p)).abs();
-        prev.steps_to(p).unsigned_abs() <= 1 && dist > 0.0 && dist <= 2.0
-    });
+    if let Some((_, prev)) = note_pitch(cur.prev_global()) {
+        c.filter(|p, _| {
+            let dist = prev.distance_to(p).abs();
+            prev.steps_to(p).unsigned_abs() <= 1 && dist > rational(0) && dist <= rational(2)
+        });
+    }
     c
 }

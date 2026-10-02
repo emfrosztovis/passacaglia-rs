@@ -1,5 +1,5 @@
 use crate::context::CounterpointContext;
-use crate::rules::utils::{is_perfect_consonance, sign_of};
+use crate::rules::utils::{is_perfect_consonance, note_pitch, sign_of};
 use crate::score::Score;
 use crate::voice::NoteCursor;
 
@@ -9,10 +9,10 @@ pub fn forbid_perfects_by_similar_motion<'a>(
     s: &'a Score,
     x1: NoteCursor<'a>,
 ) -> f64 {
-    let Some(x0) = x1.prev_global() else {
+    let Some((_, px0)) = note_pitch(x1.prev_global()) else {
         return 0.0;
     };
-    let (Some(px0), Some(px1)) = (x0.pitch, x1.pitch) else {
+    let Some(px1) = x1.pitch else {
         return 0.0;
     };
 
@@ -23,10 +23,7 @@ pub fn forbid_perfects_by_similar_motion<'a>(
         if voice.index() == v.index() {
             continue;
         }
-        let Some(n1) = voice.note_at(x1.global_time()) else {
-            continue;
-        };
-        let Some(pn1) = n1.pitch else {
+        let Some((n1, pn1)) = note_pitch(voice.note_at(x1.global_time())) else {
             continue;
         };
         let d1 = px1.interval_to(&pn1);
@@ -35,14 +32,11 @@ pub fn forbid_perfects_by_similar_motion<'a>(
         }
 
         let n0 = if n1.global_time() < x1.global_time() {
-            n1
+            Some(n1)
         } else {
-            let Some(n0) = n1.prev_global() else {
-                continue;
-            };
-            n0
+            n1.prev_global()
         };
-        let Some(pn0) = n0.pitch else {
+        let Some((_, pn0)) = note_pitch(n0) else {
             continue;
         };
 

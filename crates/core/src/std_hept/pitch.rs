@@ -9,10 +9,10 @@ use crate::interval::Interval;
 use crate::pitch::Pitch;
 use crate::std_hept::accidental;
 use crate::std_hept::parse::{parse_pitch, ParseError};
-use crate::std_hept::system::StandardHeptatonic;
+use crate::std_hept::system::StdHeptatonic;
 use crate::system::PitchSystem;
 
-impl FromStr for Pitch<StandardHeptatonic> {
+impl FromStr for Pitch<StdHeptatonic> {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -20,7 +20,7 @@ impl FromStr for Pitch<StandardHeptatonic> {
     }
 }
 
-impl Pitch<StandardHeptatonic> {
+impl Pitch<StdHeptatonic> {
     /// Parses a string expression of pitch, in the format of note name +
     /// accidental + single-digit octave number.
     ///
@@ -45,7 +45,7 @@ impl Pitch<StandardHeptatonic> {
 
     /// Returns the positive simple interval between two pitches.
     #[must_use]
-    pub fn absolute_simple_interval_to(&self, b: &Self) -> Interval<StandardHeptatonic> {
+    pub fn absolute_simple_interval_to(&self, b: &Self) -> Interval<StdHeptatonic> {
         let a = self.with_period(0);
         let b = b.with_period(0);
         a.interval_to(&b).abs()
@@ -67,30 +67,30 @@ impl Pitch<StandardHeptatonic> {
             return *self;
         }
         let direction: i64 = if *acci.numer() > 0 { 1 } else { -1 };
-        let target = acci + StandardHeptatonic::DEGREE_OFFSETS[self.index];
+        let target = acci + StdHeptatonic::DEGREE_OFFSETS[self.index];
 
         let mut deg = self.index as i64;
         let mut delta_period = 0i64;
         let mut acci = acci;
         while acci.abs() > rational(2) {
             deg += direction;
-            if deg >= StandardHeptatonic::N_DEGREES as i64 {
+            if deg >= StdHeptatonic::N_DEGREES as i64 {
                 deg = 0;
                 delta_period += 1;
             }
             if deg < 0 {
-                deg = StandardHeptatonic::N_DEGREES as i64 - 1;
+                deg = StdHeptatonic::N_DEGREES as i64 - 1;
                 delta_period -= 1;
             }
             acci = target
-                - StandardHeptatonic::DEGREE_OFFSETS[deg as usize]
-                - rational(delta_period * StandardHeptatonic::N_PITCH_CLASSES as i64);
+                - StdHeptatonic::DEGREE_OFFSETS[deg as usize]
+                - rational(delta_period * StdHeptatonic::N_PITCH_CLASSES as i64);
         }
         Pitch::new(deg as usize, acci, self.period + delta_period as i32)
     }
 }
 
-impl fmt::Display for Pitch<StandardHeptatonic> {
+impl fmt::Display for Pitch<StdHeptatonic> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         const NAMES: [&str; 7] = ["c", "d", "e", "f", "g", "a", "b"];
         write!(

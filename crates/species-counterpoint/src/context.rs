@@ -204,11 +204,10 @@ impl CounterpointContext {
             .chain(self.candidate_rules_after.iter())
         {
             let c = rule(self, s, current, candidates, ty);
-            let empty = c.is_empty();
-            candidates = Some(c);
-            if empty {
-                return candidates.expect("candidates set");
+            if c.is_empty() {
+                return c;
             }
+            candidates = Some(c);
         }
         candidates.expect("at least one candidate rule")
     }
@@ -291,11 +290,10 @@ impl CounterpointContext {
         let mut candidates: Option<Candidates<Chord>> = None;
         for rule in &self.harmony_rules {
             let c = rule(self, s, current, candidates);
-            let empty = c.is_empty();
-            candidates = Some(c);
-            if empty {
-                return candidates.expect("candidates set");
+            if c.is_empty() {
+                return c;
             }
+            candidates = Some(c);
         }
         candidates.expect("at least one harmony rule")
     }

@@ -147,15 +147,11 @@ impl std::fmt::Display for Chord {
 /// Preset common-practice chords.
 pub mod chords {
     use super::Chord;
-    use passacaglia_core::std_hept::Interval;
-
-    fn ints(abbrs: &[&str]) -> Vec<Interval> {
-        abbrs.iter().map(|s| Interval::parse(s).unwrap()).collect()
-    }
+    use passacaglia_macros::std_hept_interval as interval;
 
     #[must_use]
     pub fn major() -> Chord {
-        Chord::from_intervals_stacking(&ints(&["M3", "m3"]), 0, super::PITCH_CLASSES.c)
+        Chord::from_intervals_stacking(&[interval!("M3"), interval!("m3")], 0, super::PITCH_CLASSES.c)
     }
 
     #[must_use]
@@ -165,7 +161,7 @@ pub mod chords {
 
     #[must_use]
     pub fn minor() -> Chord {
-        Chord::from_intervals_stacking(&ints(&["m3", "M3"]), 0, super::PITCH_CLASSES.c)
+        Chord::from_intervals_stacking(&[interval!("m3"), interval!("M3")], 0, super::PITCH_CLASSES.c)
     }
 
     #[must_use]
@@ -175,7 +171,7 @@ pub mod chords {
 
     #[must_use]
     pub fn dim() -> Chord {
-        Chord::from_intervals_stacking(&ints(&["m3", "m3"]), 0, super::PITCH_CLASSES.c)
+        Chord::from_intervals_stacking(&[interval!("m3"), interval!("m3")], 0, super::PITCH_CLASSES.c)
     }
 
     #[must_use]
@@ -185,12 +181,16 @@ pub mod chords {
 
     #[must_use]
     pub fn aug() -> Chord {
-        Chord::from_intervals_stacking(&ints(&["M3", "M3"]), 0, super::PITCH_CLASSES.c)
+        Chord::from_intervals_stacking(&[interval!("M3"), interval!("M3")], 0, super::PITCH_CLASSES.c)
     }
 
     #[must_use]
     pub fn dominant7() -> Chord {
-        Chord::from_intervals_stacking(&ints(&["M3", "m3", "m3"]), 0, super::PITCH_CLASSES.c)
+        Chord::from_intervals_stacking(
+            &[interval!("M3"), interval!("m3"), interval!("m3")],
+            0,
+            super::PITCH_CLASSES.c,
+        )
     }
 }
 

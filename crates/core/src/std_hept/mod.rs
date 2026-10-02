@@ -11,14 +11,14 @@ mod system;
 
 pub use constants::{scales, PitchClasses, PITCH_CLASSES};
 pub use parse::ParseError;
-pub use system::StandardHeptatonic;
+pub use system::StdHeptatonic;
 
 /// A pitch in the standard heptatonic system. The `period` corresponds to the
 /// octave number in scientific notation.
-pub type Pitch = crate::pitch::Pitch<StandardHeptatonic>;
+pub type Pitch = crate::pitch::Pitch<StdHeptatonic>;
 
 /// A signed interval in the standard heptatonic system.
-pub type Interval = crate::interval::Interval<StandardHeptatonic>;
+pub type Interval = crate::interval::Interval<StdHeptatonic>;
 
-pub type Scale = crate::scale::Scale<StandardHeptatonic>;
-pub type Degree<'a> = crate::degree::Degree<'a, StandardHeptatonic>;
+pub type Scale = crate::scale::Scale<StdHeptatonic>;
+pub type Degree<'a> = crate::degree::Degree<'a, StdHeptatonic>;

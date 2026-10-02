@@ -6,7 +6,7 @@ use passacaglia_common::Rational;
 
 use crate::interval::Interval;
 use crate::pitch::Pitch;
-use crate::std_hept::system::StandardHeptatonic;
+use crate::std_hept::system::StdHeptatonic;
 
 /// An error produced when a literal string does not conform to the grammar.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -252,7 +252,7 @@ pub(crate) fn parse_rational(s: &str) -> Result<(i64, i64), ParseError> {
 }
 
 /// Parse a pitch literal: `^([a-g])([\d\/sf]*?)(\d+)?$` (case-insensitive).
-pub(crate) fn parse_pitch(s: &str) -> Result<Pitch<StandardHeptatonic>, ParseError> {
+pub(crate) fn parse_pitch(s: &str) -> Result<Pitch<StdHeptatonic>, ParseError> {
     let lower = s.to_ascii_lowercase();
     let bytes = lower.as_bytes();
     if bytes.is_empty() {
@@ -287,7 +287,7 @@ pub(crate) fn parse_pitch(s: &str) -> Result<Pitch<StandardHeptatonic>, ParseErr
 }
 
 /// Parse an interval abbreviation: `^([+-])?([PMmAd])(\d+)([+-]?\d+(?:\/\d+)?)?$`.
-pub(crate) fn parse_interval(s: &str) -> Result<Interval<StandardHeptatonic>, ParseError> {
+pub(crate) fn parse_interval(s: &str) -> Result<Interval<StdHeptatonic>, ParseError> {
     let bytes = s.as_bytes();
     let n = bytes.len();
     let mut i = 0;

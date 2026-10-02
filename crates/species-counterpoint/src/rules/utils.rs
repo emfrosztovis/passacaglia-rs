@@ -3,6 +3,17 @@ use passacaglia_core::std_hept::{Interval, Pitch, Scale};
 
 use crate::voice::NoteCursor;
 
+#[must_use]
+pub(crate) fn note_pitch(c: Option<NoteCursor<'_>>) -> Option<(NoteCursor<'_>, Pitch)> {
+    if let Some(x) = c
+        && let Some(p) = x.pitch
+    {
+        Some((x, p))
+    } else {
+        None
+    }
+}
+
 /// Sign of a rational (`-1`, `0`, or `1`).
 #[must_use]
 pub(crate) fn sign_of(r: Rational) -> i64 {
@@ -31,6 +42,15 @@ pub fn is_stepwise_around(c: NoteCursor<'_>) -> Option<bool> {
     let a = is_stepwise_before(c)?;
     let b = is_stepwise_after(c)?;
     Some(a && b)
+}
+
+/// The pitch of the note `n` steps before `c` in global timeline order.
+#[must_use]
+pub fn nth_prev_pitch(mut c: NoteCursor<'_>, n: usize) -> Option<Pitch> {
+    for _ in 0..n {
+        c = c.prev_global()?;
+    }
+    c.pitch
 }
 
 #[must_use]
@@ -66,7 +86,7 @@ pub fn prev_different(mut c: NoteCursor<'_>) -> Option<NoteCursor<'_>> {
     let target = c.pitch.expect("pitch present");
     loop {
         let n = c.prev_global()?;
-        if n.pitch.is_none() || n.pitch != Some(target) {
+        if n.pitch != Some(target) {
             return Some(n);
         }
         c = n;
@@ -78,7 +98,7 @@ pub fn next_different(mut c: NoteCursor<'_>) -> Option<NoteCursor<'_>> {
     let target = c.pitch.expect("pitch present");
     loop {
         let n = c.next_global()?;
-        if n.pitch.is_none() || n.pitch != Some(target) {
+        if n.pitch != Some(target) {
             return Some(n);
         }
         c = n;

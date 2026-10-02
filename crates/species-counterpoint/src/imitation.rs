@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use passacaglia_core::std_hept::Pitch;
+use passacaglia_macros::std_hept_pitch as pitch;
 
 use crate::basic::{
     empty_melodic_context, update_melodic_context, MelodicContext, MelodicSettings, NewMeasure, Step,
@@ -153,16 +154,16 @@ pub(crate) fn imitation_get_next_steps<'a>(
         }
     };
 
-    if note.pitch.is_none() {
+    let Some(note_pitch) = note.pitch else {
         return vec![Step {
-            measure: fill(note.clone(), Pitch::parse("c0").unwrap()),
+            measure: fill(note.clone(), pitch!("c0")),
             advanced: note.duration,
             cost: 0.0,
             debug: "imitate_blank".to_string(),
         }];
-    }
+    };
 
-    let pitches = (transform)(note.pitch.expect("non-null pitch"));
+    let pitches = (transform)(note_pitch);
 
     if note.non_harmonic == Some(NonHarmonicType::Suspension) {
         let mut rules = vec![fixed(pitches)];

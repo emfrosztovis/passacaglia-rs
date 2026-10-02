@@ -1,7 +1,7 @@
 use passacaglia_core::std_hept::Pitch;
 
 use crate::context::CounterpointContext;
-use crate::rules::utils::is_consonance;
+use crate::rules::utils::{is_consonance, note_pitch};
 use crate::score::Score;
 use crate::voice::{NonHarmonicType, NoteCursor};
 
@@ -17,10 +17,7 @@ pub fn enforce_vertical_consonance_with_moving_local<'a>(
     let last_index = s.voices.len() - 1;
 
     for (i, voice) in s.voices.iter().enumerate() {
-        let Some(n1) = voice.note_at(t) else {
-            continue;
-        };
-        let Some(p1) = n1.pitch else {
+        let Some((n1, p1)) = note_pitch(voice.note_at(t)) else {
             continue;
         };
         if n1.global_time() != t || n1.non_harmonic == Some(NonHarmonicType::Suspension) {

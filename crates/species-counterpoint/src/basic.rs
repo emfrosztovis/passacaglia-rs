@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use passacaglia_common::Rational;
 use passacaglia_core::std_hept::{Pitch, Scale};
+use passacaglia_macros::std_hept_pitch as pitch;
 
 use crate::chord::{Chord, ChordElement, Harmony};
 use crate::clef::Clef;
@@ -212,8 +213,8 @@ impl CounterpointScoreBuilder {
             v,
             Clef::TREBLE,
             "Soprano",
-            Pitch::parse("c4").unwrap(),
-            Pitch::parse("a5").unwrap(),
+            pitch!("c4"),
+            pitch!("a5"),
         )
     }
 
@@ -222,8 +223,8 @@ impl CounterpointScoreBuilder {
             v,
             Clef::TREBLE,
             "Alto",
-            Pitch::parse("f3").unwrap(),
-            Pitch::parse("d5").unwrap(),
+            pitch!("f3"),
+            pitch!("d5"),
         )
     }
 
@@ -232,8 +233,8 @@ impl CounterpointScoreBuilder {
             v,
             Clef::ALTO,
             "Tenor",
-            Pitch::parse("c3").unwrap(),
-            Pitch::parse("a4").unwrap(),
+            pitch!("c3"),
+            pitch!("a4"),
         )
     }
 
@@ -242,8 +243,8 @@ impl CounterpointScoreBuilder {
             v,
             Clef::BASS,
             "Bass",
-            Pitch::parse("f2").unwrap(),
-            Pitch::parse("d4").unwrap(),
+            pitch!("f2"),
+            pitch!("d4"),
         )
     }
 }

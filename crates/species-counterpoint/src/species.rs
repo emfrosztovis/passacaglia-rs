@@ -260,13 +260,13 @@ fn vdiff(c: MeasureCursor<'_>, score: &Score, name: &str) -> bool {
     let mut total = 0usize;
     let mut same = 0usize;
     for v in score.voices.iter() {
-        if let Some(m) = v.measures().get(c.index()) {
-            if let Some(sn) = m.schema_name() {
-                if sn == name {
-                    same += 1;
-                }
-                total += 1;
+        if let Some(m) = v.measures().get(c.index())
+            && let Some(sn) = m.schema_name()
+        {
+            if sn == name {
+                same += 1;
             }
+            total += 1;
         }
     }
     if total > 0 && same > total - 1 {

@@ -7,7 +7,7 @@ use passacaglia_common::{rational, rational_to_string, Rational};
 
 use crate::interval::Interval;
 use crate::std_hept::parse::{interval_data, parse_interval, ParseError, Quality};
-use crate::std_hept::system::StandardHeptatonic;
+use crate::std_hept::system::StdHeptatonic;
 
 const MULTIPLIER_ADVERBS: [&str; 4] = ["", "", "doubly", "triply"];
 const MULTIPLIERS: [&str; 4] = ["", "single", "double", "triple"];
@@ -71,7 +71,7 @@ fn steps_to_ordinal(n: usize) -> String {
 
 /// Find the closest well-known interval (a `(difference, quality)` pair) by
 /// comparing against the interval data for the simple interval.
-fn get_closest_well_known(int: &Interval<StandardHeptatonic>) -> (Rational, Quality) {
+fn get_closest_well_known(int: &Interval<StdHeptatonic>) -> (Rational, Quality) {
     let simple = int.to_simple(Some(7));
 
     let mut diff: Option<Rational> = None;
@@ -100,7 +100,7 @@ fn get_closest_well_known(int: &Interval<StandardHeptatonic>) -> (Rational, Qual
     (diff, q)
 }
 
-impl FromStr for Interval<StandardHeptatonic> {
+impl FromStr for Interval<StdHeptatonic> {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -108,7 +108,7 @@ impl FromStr for Interval<StandardHeptatonic> {
     }
 }
 
-impl Interval<StandardHeptatonic> {
+impl Interval<StdHeptatonic> {
     /// Parses an interval abbreviation in the format of sign (optional) + quality +
     /// number + further semitone differences (optional). Available qualities are `P`
     /// (perfect), `M` (major), `m` (minor), `A` (augmented) and `d` (diminished).
@@ -182,7 +182,7 @@ impl Interval<StandardHeptatonic> {
     }
 }
 
-impl fmt::Display for Interval<StandardHeptatonic> {
+impl fmt::Display for Interval<StdHeptatonic> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.to_verbose_string(false))
     }

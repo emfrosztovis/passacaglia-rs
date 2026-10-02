@@ -1,6 +1,5 @@
 use std::rc::Rc;
 
-use passacaglia_common::rational_value;
 use passacaglia_core::std_hept::Pitch;
 use passacaglia_core::structure::Container;
 
@@ -50,17 +49,16 @@ pub fn enforce_valid_chords<'a>(
         };
         let mut bass: Option<Pitch> = None;
         for n in m.notes.iter() {
-            if !n.is_non_harmonic() {
-                if let Some(p) = n.pitch {
-                    let p0 = p.with_period(0);
-                    if v.index() == s.voices.len() - 1 {
-                        if bass.is_none_or(|b| rational_value(b.ord()) > rational_value(p0.ord()))
-                        {
-                            bass = Some(p0);
-                        }
-                    } else {
-                        notes.push(p0);
+            if !n.is_non_harmonic()
+                && let Some(p) = n.pitch
+            {
+                let p0 = p.with_period(0);
+                if v.index() == s.voices.len() - 1 {
+                    if bass.is_none_or(|b| b.ord() > p0.ord()) {
+                        bass = Some(p0);
                     }
+                } else {
+                    notes.push(p0);
                 }
             }
         }

@@ -1,6 +1,7 @@
 use passacaglia_core::std_hept::Pitch;
 
 use crate::context::{Candidates, CounterpointContext};
+use crate::rules::utils::nth_prev_pitch;
 use crate::score::Score;
 use crate::voice::{NonHarmonicType, NoteCursor};
 
@@ -13,26 +14,18 @@ pub fn enforce_leap_preparation<'a>(
     _ty: Option<NonHarmonicType>,
 ) -> Candidates<Pitch> {
     let mut c = c.expect("candidates initialized");
-    let Some(p1) = cur.prev_global() else {
-        return c;
-    };
-    let Some(prev) = p1.pitch else {
-        return c;
-    };
-    let Some(p2) = p1.prev_global() else {
-        return c;
-    };
-    let Some(prev2) = p2.pitch else {
-        return c;
-    };
-    let int0 = prev2.interval_to(&prev);
-    c.filter(|x, _| {
-        let int = prev.interval_to(x);
-        if int.steps < 3 {
-            return true;
-        }
-        int0.steps == 1 && int.sign == -int0.sign
-    });
+    if let Some(prev) = nth_prev_pitch(cur, 1)
+        && let Some(prev2) = nth_prev_pitch(cur, 2)
+    {
+        let int0 = prev2.interval_to(&prev);
+        c.filter(|x, _| {
+            let int = prev.interval_to(x);
+            if int.steps < 3 {
+                return true;
+            }
+            int0.steps == 1 && int.sign == -int0.sign
+        });
+    }
     c
 }
 
@@ -45,26 +38,16 @@ pub fn enforce_leap_resolution<'a>(
     _ty: Option<NonHarmonicType>,
 ) -> Candidates<Pitch> {
     let mut c = c.expect("candidates initialized");
-    let Some(p1) = cur.prev_global() else {
-        return c;
-    };
-    let Some(prev) = p1.pitch else {
-        return c;
-    };
-    let Some(p2) = p1.prev_global() else {
-        return c;
-    };
-    let Some(prev2) = p2.pitch else {
-        return c;
-    };
-    let int0 = prev2.interval_to(&prev);
-    if int0.steps < 3 {
-        return c;
+    if let Some(prev) = nth_prev_pitch(cur, 1)
+        && let Some(prev2) = nth_prev_pitch(cur, 2)
+        && let int0 = prev2.interval_to(&prev)
+        && int0.steps >= 3
+    {
+        c.filter(|x, _| {
+            let int = prev.interval_to(x);
+            int.steps >= 3 || (int.steps == 1 && int.sign == -int0.sign)
+        });
     }
-    c.filter(|x, _| {
-        let int = prev.interval_to(x);
-        int.steps >= 3 || (int.steps == 1 && int.sign == -int0.sign)
-    });
     c
 }
 
