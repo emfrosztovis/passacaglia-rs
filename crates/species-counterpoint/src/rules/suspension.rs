@@ -62,11 +62,12 @@ pub fn make_suspension<'a>(
     if cur.index() != 0 {
         return Candidates::new();
     }
-    if let Some((p1, prev)) = note_pitch(cur.prev_global())
-        && p1.non_harmonic.is_none()
-        && p1.span() >= cur.span()
-    {
-        c.filter_map(|p, _| if *p == prev { Some(0.0) } else { None });
+    let Some((p1, prev)) = note_pitch(cur.prev_global()) else {
+        return Candidates::new();
+    };
+    if p1.non_harmonic.is_some() || p1.span() < cur.span() {
+        return Candidates::new();
     }
+    c.filter_map(|p, _| if *p == prev { Some(0.0) } else { None });
     c
 }

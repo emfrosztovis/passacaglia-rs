@@ -1,2 +1,2 @@
-package-lock.json -diff
+**/package-lock.json -diff
 agent-documents/*.* -diff

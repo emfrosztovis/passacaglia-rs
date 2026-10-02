@@ -1,0 +1,17 @@
+[package]
+name = "passacaglia-debug-server"
+description = "Local HTTP/SSE server that visualizes the species-counterpoint solver results."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+passacaglia-common.workspace = true
+passacaglia-core.workspace = true
+passacaglia-musicxml.workspace = true
+passacaglia-species-counterpoint.workspace = true
+axum = "0.8"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "net"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+futures-util = "0.3"
+serde_json = "1"

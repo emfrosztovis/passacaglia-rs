@@ -6,6 +6,7 @@ members = [
     "crates/macros",
     "crates/musicxml",
     "crates/species-counterpoint",
+    "crates/debug-server",
 ]
 
 [workspace.package]

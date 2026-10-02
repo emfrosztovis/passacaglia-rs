@@ -1,3 +1,5 @@
 /target
 Cargo.lock
 opencode.json
+node_modules
+dist
