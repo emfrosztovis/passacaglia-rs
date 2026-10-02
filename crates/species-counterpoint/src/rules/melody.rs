@@ -6,6 +6,8 @@ use crate::rules::utils::{note_pitch, nth_prev_pitch};
 use crate::score::Score;
 use crate::voice::{NonHarmonicType, NoteCursor};
 
+/// Only allow melodic intervals specified in [`CounterpointContext`] in the
+/// melody.
 #[must_use]
 pub fn enforce_melody_intervals<'a>(
     ctx: &CounterpointContext,
@@ -40,6 +42,7 @@ pub fn enforce_melody_intervals<'a>(
     c
 }
 
+/// Only allow stepwise motion around notes shorter than a quarter note.
 #[must_use]
 pub fn enforce_stepwise_around_short_notes<'a>(
     _ctx: &CounterpointContext,

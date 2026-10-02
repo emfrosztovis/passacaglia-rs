@@ -5,6 +5,8 @@ use crate::context::{Candidates, CounterpointContext};
 use crate::score::Score;
 use crate::voice::{NonHarmonicType, NoteCursor};
 
+/// Forbid voice crossing, and optionally (if `allow_unison` is set in the
+/// context) also forbid unison.
 #[must_use]
 pub fn forbid_voice_overlapping2<'a>(
     ctx: &CounterpointContext,

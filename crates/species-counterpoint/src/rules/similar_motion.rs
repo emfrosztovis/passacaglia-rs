@@ -3,6 +3,8 @@ use crate::rules::utils::{is_perfect_consonance, note_pitch, sign_of};
 use crate::score::Score;
 use crate::voice::NoteCursor;
 
+/// Forbid arriving at perfect consonances 1) by similar motion or
+/// 2) immediately from perfect consonances.
 #[must_use]
 pub fn forbid_perfects_by_similar_motion<'a>(
     _ctx: &CounterpointContext,

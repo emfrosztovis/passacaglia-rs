@@ -11,10 +11,20 @@ use passacaglia_core::structure::{Container, Cursor, DurationalElement, Temporal
 /// display hint), mirroring the TypeScript `Chord.equals`/`Chord.hash`.
 #[derive(Debug, Clone)]
 pub struct Chord {
+    /// The lowest pitch or pitch class of the chord.
     pub bass: Pitch,
+    /// The list of intervals of chord tones above the bass. These should be
+    /// simple intervals, and they must be sorted from smallest to largest.
     pub intervals: Rc<[Interval]>,
+    /// The list of chord pitches INCLUDING the bass. They must be sorted from
+    /// lowest to highest.
     pub tones: Rc<[Pitch]>,
+    /// The position number of the chord. This is equal to the index of the
+    /// root pitch in an arrangement of the chord from the bass upwards. For
+    /// example, a `position` of 0 means the root position, 1 means the first
+    /// inversion, etc.
     pub position: usize,
+    /// A text label showing the quality of the chord.
     pub label: Option<String>,
 }
 
@@ -53,6 +63,9 @@ impl Chord {
         self.tones[self.position]
     }
 
+    /// Construct a chord from its tones.
+    ///
+    /// `ps` must be sorted from lowest to highest.
     #[must_use]
     pub fn from_pitches(ps: &[Pitch], position: usize) -> Chord {
         debug_assert!(!ps.is_empty());
@@ -67,6 +80,9 @@ impl Chord {
         Chord::new(bass, Rc::from(ints), Rc::from(tones), position)
     }
 
+    /// Construct a chord from its intervals.
+    ///
+    /// `ints` must be simple intervals and sorted from smallest to largest.
     #[must_use]
     pub fn from_intervals_stacking(ints: &[Interval], position: usize, bass: Pitch) -> Chord {
         debug_assert!(!ints.is_empty());
@@ -79,6 +95,9 @@ impl Chord {
         Chord::from_pitches(&tones, position)
     }
 
+    /// Construct a chord from its intervals.
+    ///
+    /// `ints` must be simple intervals and sorted from smallest to largest.
     #[must_use]
     pub fn from_intervals(ints: &[Interval], position: usize, bass: Pitch) -> Chord {
         debug_assert!(!ints.is_empty());

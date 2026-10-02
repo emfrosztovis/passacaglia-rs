@@ -3,6 +3,8 @@ use crate::rules::utils::{note_pitch, sign_of};
 use crate::score::Score;
 use crate::voice::NoteCursor;
 
+/// Assign heuristic costs according to motion type, based on the settings in
+/// [`CounterpointContext`].
 #[must_use]
 pub fn prioritize_voice_motion<'a>(
     ctx: &CounterpointContext,

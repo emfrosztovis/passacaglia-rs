@@ -6,6 +6,7 @@ use crate::rules::utils::{is_consonance, is_leading_tone, note_pitch};
 use crate::score::Score;
 use crate::voice::{NonHarmonicType, NoteCursor};
 
+/// Enforce that suspensions are resolved correctly.
 #[must_use]
 pub fn enforce_suspension<'a>(
     _ctx: &CounterpointContext,

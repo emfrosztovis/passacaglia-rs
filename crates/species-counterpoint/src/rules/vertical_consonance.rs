@@ -5,6 +5,8 @@ use crate::rules::utils::{is_consonance, note_pitch};
 use crate::score::Score;
 use crate::voice::{NonHarmonicType, NoteCursor};
 
+/// Enforces that the candidates form consonance with voices that are moving
+/// at the same point. Forbids certain intervals if bass is involved.
 #[must_use]
 pub fn enforce_vertical_consonance_with_moving_local<'a>(
     _ctx: &CounterpointContext,

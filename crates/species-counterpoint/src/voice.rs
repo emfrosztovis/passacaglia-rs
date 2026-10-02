@@ -24,6 +24,7 @@ pub enum NonHarmonicType {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Note {
     pub duration: Rational,
+    /// `None` means either it is not filled in, or it's a rest.
     pub pitch: Option<Pitch>,
     pub non_harmonic: Option<NonHarmonicType>,
     pub debug: String,

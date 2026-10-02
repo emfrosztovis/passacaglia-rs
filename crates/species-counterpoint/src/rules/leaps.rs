@@ -5,6 +5,8 @@ use crate::rules::utils::nth_prev_pitch;
 use crate::score::Score;
 use crate::voice::{NonHarmonicType, NoteCursor};
 
+/// Make sure leaps greater than a thrid are prepared by stepwise opposite
+/// movement before them.
 #[must_use]
 pub fn enforce_leap_preparation<'a>(
     _ctx: &CounterpointContext,
@@ -29,6 +31,8 @@ pub fn enforce_leap_preparation<'a>(
     c
 }
 
+/// Make sure leaps greater than a thrid are resolved by stepwise opposite
+/// movement after them.
 #[must_use]
 pub fn enforce_leap_resolution<'a>(
     _ctx: &CounterpointContext,
@@ -51,6 +55,7 @@ pub fn enforce_leap_resolution<'a>(
     c
 }
 
+/// Limit consecutive leaps according to the voice's melodic settings.
 #[must_use]
 pub fn limit_consecutive_leaps<'a>(
     _ctx: &CounterpointContext,

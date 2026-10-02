@@ -7,6 +7,8 @@ use crate::rules::utils::note_pitch;
 use crate::score::Score;
 use crate::voice::{NonHarmonicType, NoteCursor};
 
+/// Enforce that notes surrounding a passing tone are its neighbors in
+/// ascending or descending order.
 #[must_use]
 pub fn enforce_passing_tones<'a>(
     _ctx: &CounterpointContext,

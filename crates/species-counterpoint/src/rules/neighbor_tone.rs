@@ -7,6 +7,7 @@ use crate::rules::utils::note_pitch;
 use crate::score::Score;
 use crate::voice::{NonHarmonicType, NoteCursor};
 
+/// Enforce that neighbor tones resolve to the pitch before it.
 #[must_use]
 pub fn enforce_neighbor_tones<'a>(
     _ctx: &CounterpointContext,

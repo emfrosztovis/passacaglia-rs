@@ -3,6 +3,16 @@ use crate::rules::utils::{is_perfect_consonance, is_stepwise_around, note_pitch}
 use crate::score::Score;
 use crate::voice::NoteCursor;
 
+/// Forbid perfect consonances that are near each other.
+///
+/// Specifically, if the second consonance is on the first beat of the measure:
+/// - all perfect consonances that is less than OR exactly a measure apart from it
+///
+/// If the second consonance is not so:
+/// - only when the first consonance is on the same beat at the second
+/// - and NO notes are non-harmonic tones, or surrounded by stepwise motion
+/// - (NOT IMPLEMENTED) and IF the two notes of the second consonance don't
+///   start simultaneously, only when they are NOT in contrary motion.
 #[must_use]
 pub fn forbid_nearby_perfects<'a>(
     ctx: &CounterpointContext,
