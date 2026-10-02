@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use passacaglia_common::{rational, rational_value, Rational};
 use passacaglia_core::std_hept::Pitch;
@@ -45,34 +45,34 @@ pub struct MeasureSchema {
 /// A solver-aware species measure (stored inside a [`Measure`]).
 #[derive(Clone)]
 pub struct SpeciesMeasure {
-    pub ctx: Arc<CounterpointContext>,
+    pub ctx: Rc<CounterpointContext>,
     pub melodic_context: MelodicContext,
     pub name: String,
-    pub note_schema: Arc<[NoteSchema]>,
+    pub note_schema: Rc<[NoteSchema]>,
 }
 
 /// A transient measure that expands into concrete species measures.
 #[derive(Clone)]
 pub struct FakeMeasure {
-    pub ctx: Arc<CounterpointContext>,
+    pub ctx: Rc<CounterpointContext>,
     pub melodic_context: MelodicContext,
-    pub candidates: Arc<[FakeCandidate]>,
+    pub candidates: Rc<[FakeCandidate]>,
     pub p0: Pitch,
 }
 
 #[derive(Debug, Clone)]
 pub struct FakeCandidate {
     pub name: String,
-    pub note_schema: Arc<[NoteSchema]>,
+    pub note_schema: Rc<[NoteSchema]>,
     pub cost: f64,
 }
 
 #[must_use]
 pub(crate) fn make_species_measure(
-    ctx: Arc<CounterpointContext>,
+    ctx: Rc<CounterpointContext>,
     mc: MelodicContext,
     name: String,
-    note_schema: Arc<[NoteSchema]>,
+    note_schema: Rc<[NoteSchema]>,
     mut notes: Vec<Note>,
 ) -> Measure {
     while notes.len() < note_schema.len() {
@@ -80,7 +80,7 @@ pub(crate) fn make_species_measure(
         notes.push(Note::new(d, None, None));
     }
     Measure {
-        notes: Arc::from(notes),
+        notes: Rc::from(notes),
         duration: ctx.parameters.measure_length,
         kind: MeasureKind::Species(SpeciesMeasure {
             ctx,
@@ -113,7 +113,7 @@ pub(crate) fn species_get_next_steps<'a>(
         let mut notes = measure.notes.to_vec();
         notes[idx] = note;
         Measure {
-            notes: Arc::from(notes),
+            notes: Rc::from(notes),
             duration: measure.duration,
             kind: MeasureKind::Species(SpeciesMeasure {
                 ctx: sm.ctx.clone(),
@@ -190,7 +190,7 @@ pub(crate) fn species_make_new_measure<'a>(
                 cp.ctx.clone(),
                 mc,
                 s.name.clone(),
-                Arc::from(n.to_vec()),
+                Rc::from(n.to_vec()),
                 vec![],
             ),
             cost: s.cost,
@@ -198,12 +198,12 @@ pub(crate) fn species_make_new_measure<'a>(
     }
 
     if !first_is_harmonic.is_empty() {
-        let fake_candidates: Arc<[FakeCandidate]> = Arc::from(
+        let fake_candidates: Rc<[FakeCandidate]> = Rc::from(
             first_is_harmonic
                 .iter()
                 .map(|(s, n)| FakeCandidate {
                     name: s.name.clone(),
-                    note_schema: Arc::from(n.to_vec()),
+                    note_schema: Rc::from(n.to_vec()),
                     cost: s.cost,
                 })
                 .collect::<Vec<_>>(),
@@ -212,7 +212,7 @@ pub(crate) fn species_make_new_measure<'a>(
         let fake_cursor = voice.note_at(c.global_time()).expect("fake cursor exists");
         let create = move |_note: Note, p: Pitch| -> Measure {
             Measure {
-                notes: Arc::from(vec![Note::new(
+                notes: Rc::from(vec![Note::new(
                     cp.ctx.parameters.measure_length,
                     Some(p),
                     None,
@@ -284,7 +284,7 @@ fn define_species(m: MelodicSettings, schema: Vec<MeasureSchema>) -> VoiceConstr
     VoiceConstructor {
         melody_settings: m,
         kind: VoiceKind::Species {
-            schemas: Arc::from(schema),
+            schemas: Rc::from(schema),
         },
     }
 }

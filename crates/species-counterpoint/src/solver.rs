@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap};
-use std::sync::Arc;
+use std::rc::Rc;
 
 use passacaglia_common::rational_value;
 use passacaglia_core::structure::Container;
@@ -43,8 +43,8 @@ enum Target {
 #[derive(Clone)]
 #[allow(dead_code)]
 struct Node {
-    pub score: Arc<Score>,
-    ctx: Arc<CounterpointContext>,
+    pub score: Rc<Score>,
+    ctx: Rc<CounterpointContext>,
     pub measure_index: usize,
     pub voice_index: Option<usize>,
     pub kind: NodeKind,
@@ -84,8 +84,8 @@ fn find_writable(score: &Score, ctx: &CounterpointContext, measure_index: usize)
 
 impl Node {
     fn new(
-        score: Arc<Score>,
-        ctx: Arc<CounterpointContext>,
+        score: Rc<Score>,
+        ctx: Rc<CounterpointContext>,
         measure_index: usize,
         voice_index: Option<usize>,
         kind: NodeKind,
@@ -133,7 +133,7 @@ impl Node {
                         let new_harmony = self.score.harmony.replace_chord(self.measure_index, Some(chord.clone()));
                         let new_score = self.score.replace_harmony(new_harmony);
                         Node::new(
-                            Arc::new(new_score),
+                            Rc::new(new_score),
                             self.ctx.clone(),
                             self.measure_index,
                             None,
@@ -164,7 +164,7 @@ impl Node {
                             return None;
                         }
                         Some(Node::new(
-                            Arc::new(new_score),
+                            Rc::new(new_score),
                             self.ctx.clone(),
                             self.measure_index,
                             Some(voice_index),
@@ -213,18 +213,18 @@ impl PartialOrd for HeapEntry {
 
 /// Best-first / beam search solver over scores.
 pub struct CounterpointSolver {
-    ctx: Arc<CounterpointContext>,
+    ctx: Rc<CounterpointContext>,
     pub batch: usize,
     pub remove_old: usize,
     pub report_interval: usize,
-    pub on_progress: Option<Box<dyn FnMut(CounterpointSolverProgress)>>,
-    parents: Option<HashMap<Arc<Score>, Option<Arc<Score>>>>,
-    start: Option<Arc<Score>>,
+    on_progress: Option<Box<dyn FnMut(CounterpointSolverProgress)>>,
+    parents: Option<HashMap<Rc<Score>, Option<Rc<Score>>>>,
+    start: Option<Rc<Score>>,
 }
 
 impl CounterpointSolver {
     #[must_use]
-    pub fn new(ctx: Arc<CounterpointContext>) -> Self {
+    pub fn new(ctx: Rc<CounterpointContext>) -> Self {
         CounterpointSolver {
             ctx,
             batch: 5,
@@ -236,13 +236,17 @@ impl CounterpointSolver {
         }
     }
 
+    pub fn set_reporter(&mut self, on_progress: impl FnMut(CounterpointSolverProgress) + 'static) {
+        self.on_progress = Some(Box::new(on_progress));
+    }
+
     #[must_use]
-    pub fn parents(&self) -> Option<&HashMap<Arc<Score>, Option<Arc<Score>>>> {
+    pub fn parents(&self) -> Option<&HashMap<Rc<Score>, Option<Rc<Score>>>> {
         self.parents.as_ref()
     }
 
     #[must_use]
-    pub fn start_node(&self) -> Option<&Arc<Score>> {
+    pub fn start_node(&self) -> Option<&Rc<Score>> {
         self.start.as_ref()
     }
 
@@ -250,15 +254,15 @@ impl CounterpointSolver {
         &mut self,
         s: &Score,
         strategy: CounterpointSolverRewardStrategy,
-    ) -> Option<Arc<Score>> {
+    ) -> Option<Rc<Score>> {
         let f = match strategy {
             CounterpointSolverRewardStrategy::Constant { value } => value,
         };
 
         let mut open: BinaryHeap<HeapEntry> = BinaryHeap::new();
-        let mut parents: HashMap<Arc<Score>, Option<Arc<Score>>> = HashMap::new();
+        let mut parents: HashMap<Rc<Score>, Option<Rc<Score>>> = HashMap::new();
         let start = Node::new(
-            Arc::new(s.clone()),
+            Rc::new(s.clone()),
             self.ctx.clone(),
             0,
             None,

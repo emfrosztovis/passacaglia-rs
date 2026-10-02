@@ -1,7 +1,7 @@
 #![warn(clippy::pedantic)]
 #![allow(clippy::arc_with_non_send_sync)]
 
-use std::sync::Arc;
+use std::rc::Rc;
 
 use passacaglia_common::rational;
 use passacaglia_core::std_hept::scales;
@@ -12,7 +12,7 @@ use passacaglia_species_counterpoint::{
 };
 
 /// A fully-configured context mirroring the reference setup used by the debug UI.
-fn context() -> Arc<CounterpointContext> {
+fn context() -> Rc<CounterpointContext> {
     let mut ctx = CounterpointContext::new(
         4,
         Parameters {
@@ -65,11 +65,11 @@ fn context() -> Arc<CounterpointContext> {
 
     ctx.allow_unison = true;
 
-    Arc::new(ctx)
+    Rc::new(ctx)
 }
 
 /// Solve `score` with the same parameters as the reference debug UI.
-fn solve(ctx: Arc<CounterpointContext>, score: &Score) -> bool {
+fn solve(ctx: Rc<CounterpointContext>, score: &Score) -> bool {
     let mut solver = CounterpointSolver::new(ctx);
     solver.batch = 50;
     solver.remove_old = 5;

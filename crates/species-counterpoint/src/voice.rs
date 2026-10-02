@@ -1,5 +1,5 @@
 use std::hash::{Hash, Hasher};
-use std::sync::Arc;
+use std::rc::Rc;
 
 use passacaglia_common::{rational, Rational};
 use passacaglia_core::std_hept::Pitch;
@@ -79,7 +79,7 @@ pub type NoteCursor<'a> = Cursor<'a, Measure, MeasureCursor<'a>>;
 /// a kind describing how the solver may write into it.
 #[derive(Clone)]
 pub struct Measure {
-    pub notes: Arc<[Note]>,
+    pub notes: Rc<[Note]>,
     pub duration: Rational,
     pub kind: MeasureKind,
 }
@@ -95,9 +95,9 @@ pub enum MeasureKind {
 
 impl Measure {
     #[must_use]
-    pub fn blank(ctx: &Arc<CounterpointContext>) -> Measure {
+    pub fn blank(ctx: &Rc<CounterpointContext>) -> Measure {
         Measure {
-            notes: Arc::from(vec![Note::new(ctx.parameters.measure_length, None, None)]),
+            notes: Rc::from(vec![Note::new(ctx.parameters.measure_length, None, None)]),
             duration: ctx.parameters.measure_length,
             kind: MeasureKind::Blank,
         }
@@ -224,7 +224,7 @@ impl Container for Measure {
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct FixedVoice {
     pub index: usize,
-    pub measures: Arc<[Measure]>,
+    pub measures: Rc<[Measure]>,
     pub clef: Clef,
     pub name: String,
 }
@@ -232,8 +232,8 @@ pub struct FixedVoice {
 /// How a counterpoint voice generates its next measure.
 #[derive(Clone)]
 pub enum VoiceKind {
-    Species { schemas: Arc<[MeasureSchema]> },
-    Imitation { target_voice: usize, delay: i64, transform: Arc<dyn Fn(Pitch) -> Vec<Pitch>> },
+    Species { schemas: Rc<[MeasureSchema]> },
+    Imitation { target_voice: usize, delay: i64, transform: Rc<dyn Fn(Pitch) -> Vec<Pitch>> },
 }
 
 /// A small hashable tag describing the voice kind, used for structural hashing.
@@ -248,8 +248,8 @@ pub enum VoiceKindTag {
 #[derive(Clone)]
 pub struct CounterpointVoice {
     pub index: usize,
-    pub ctx: Arc<CounterpointContext>,
-    pub measures: Arc<[Measure]>,
+    pub ctx: Rc<CounterpointContext>,
+    pub measures: Rc<[Measure]>,
     pub lower_range: Pitch,
     pub higher_range: Pitch,
     pub name: String,
@@ -298,7 +298,7 @@ impl CounterpointVoice {
         let mut ms = self.measures.to_vec();
         ms[i] = m;
         let mut v = self.clone();
-        v.measures = Arc::from(ms);
+        v.measures = Rc::from(ms);
         v
     }
 }
@@ -383,7 +383,7 @@ impl Voice {
                 let mut ms = f.measures.to_vec();
                 ms[i] = m;
                 Voice::Fixed(FixedVoice {
-                    measures: Arc::from(ms),
+                    measures: Rc::from(ms),
                     ..f.clone()
                 })
             }

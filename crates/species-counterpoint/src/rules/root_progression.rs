@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use passacaglia_core::std_hept::Interval;
 use passacaglia_core::structure::Container;
@@ -8,7 +8,7 @@ use crate::context::{Candidates, HarmonyRule};
 
 #[must_use]
 pub fn enforce_root_progression(root_intervals: Vec<Interval>, chords: Vec<Chord>) -> HarmonyRule {
-    Arc::new(move |_ctx, s, cur, c| {
+    Rc::new(move |_ctx, s, cur, c| {
         let scale = &s.harmony.scale;
         let prev = cur.prev().and_then(|p| s.harmony.item(p.index()).chord.as_ref());
 

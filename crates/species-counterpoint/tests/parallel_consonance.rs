@@ -5,7 +5,7 @@
     clippy::too_many_lines
 )]
 
-use std::sync::Arc;
+use std::rc::Rc;
 
 use passacaglia_common::rational;
 use passacaglia_core::std_hept::scales;
@@ -16,8 +16,8 @@ use passacaglia_species_counterpoint::rules::forbid_perfects_by_similar_motion;
 use passacaglia_species_counterpoint::score::Parameters;
 use passacaglia_species_counterpoint::voice::parse_notes;
 
-fn context() -> Arc<CounterpointContext> {
-    Arc::new(CounterpointContext::new(
+fn context() -> Rc<CounterpointContext> {
+    Rc::new(CounterpointContext::new(
         2,
         Parameters {
             measure_length: rational(4),

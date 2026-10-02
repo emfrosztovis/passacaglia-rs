@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use passacaglia_common::Rational;
 
@@ -15,7 +15,7 @@ pub struct Parameters {
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Score {
     pub parameters: Parameters,
-    pub voices: Arc<[Voice]>,
+    pub voices: Rc<[Voice]>,
     pub harmony: Harmony,
 }
 
@@ -24,7 +24,7 @@ impl Score {
     pub fn new(parameters: Parameters, voices: Vec<Voice>, harmony: Harmony) -> Score {
         Score {
             parameters,
-            voices: Arc::from(voices),
+            voices: Rc::from(voices),
             harmony,
         }
     }
@@ -44,7 +44,7 @@ impl Score {
         vs[i] = v;
         Score {
             parameters: self.parameters,
-            voices: Arc::from(vs),
+            voices: Rc::from(vs),
             harmony: self.harmony.clone(),
         }
     }

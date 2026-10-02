@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use passacaglia_common::{rational, Rational};
 use passacaglia_core::std_hept::{Interval, Pitch, PITCH_CLASSES};
@@ -12,8 +12,8 @@ use passacaglia_core::structure::{Container, Cursor, DurationalElement, Temporal
 #[derive(Debug, Clone)]
 pub struct Chord {
     pub bass: Pitch,
-    pub intervals: Arc<[Interval]>,
-    pub tones: Arc<[Pitch]>,
+    pub intervals: Rc<[Interval]>,
+    pub tones: Rc<[Pitch]>,
     pub position: usize,
     pub label: Option<String>,
 }
@@ -35,7 +35,7 @@ impl std::hash::Hash for Chord {
 }
 
 impl Chord {
-    fn new(bass: Pitch, intervals: Arc<[Interval]>, tones: Arc<[Pitch]>, position: usize) -> Chord {
+    fn new(bass: Pitch, intervals: Rc<[Interval]>, tones: Rc<[Pitch]>, position: usize) -> Chord {
         debug_assert!(position <= intervals.len());
         debug_assert!(position < tones.len());
         debug_assert_eq!(bass, tones[0]);
@@ -64,7 +64,7 @@ impl Chord {
             tones.push(tone);
             ints.push(bass.interval_to(&tone));
         }
-        Chord::new(bass, Arc::from(ints), Arc::from(tones), position)
+        Chord::new(bass, Rc::from(ints), Rc::from(tones), position)
     }
 
     #[must_use]
@@ -85,7 +85,7 @@ impl Chord {
         let tones: Vec<Pitch> = std::iter::once(bass)
             .chain(ints.iter().map(|int| bass.add(int)))
             .collect();
-        Chord::new(bass, Arc::from(ints.to_vec()), Arc::from(tones), position)
+        Chord::new(bass, Rc::from(ints.to_vec()), Rc::from(tones), position)
     }
 
     #[must_use]
@@ -215,7 +215,7 @@ pub type ChordCursor<'a> = Cursor<'a, Harmony, ()>;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Harmony {
     pub scale: passacaglia_core::std_hept::Scale,
-    pub elements: Arc<[ChordElement]>,
+    pub elements: Rc<[ChordElement]>,
 }
 
 impl Harmony {
@@ -223,7 +223,7 @@ impl Harmony {
     pub fn new(scale: passacaglia_core::std_hept::Scale, e: Vec<ChordElement>) -> Harmony {
         Harmony {
             scale,
-            elements: Arc::from(e),
+            elements: Rc::from(e),
         }
     }
 
@@ -237,7 +237,7 @@ impl Harmony {
         };
         Harmony {
             scale: self.scale.clone(),
-            elements: Arc::from(e),
+            elements: Rc::from(e),
         }
     }
 }

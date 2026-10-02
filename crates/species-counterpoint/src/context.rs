@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::sync::Arc;
+use std::rc::Rc;
 
 use passacaglia_core::std_hept::{Interval, Pitch};
 
@@ -93,14 +93,14 @@ impl<T: Hash + Eq> Candidates<T> {
 
 /// A local rule evaluating the cost of a just-written note.
 pub type LocalRule =
-    Arc<dyn for<'a> Fn(&CounterpointContext, &'a Score, NoteCursor<'a>) -> f64>;
+    Rc<dyn for<'a> Fn(&CounterpointContext, &'a Score, NoteCursor<'a>) -> f64>;
 
 /// A global rule returning a description of a violation, or `None` if valid.
 pub type GlobalRule =
-    Arc<dyn for<'a> Fn(&CounterpointContext, &'a Score) -> Option<String>>;
+    Rc<dyn for<'a> Fn(&CounterpointContext, &'a Score) -> Option<String>>;
 
 /// A rule refining the candidate pitches for a note.
-pub type CandidateRule = Arc<
+pub type CandidateRule = Rc<
     dyn for<'a> Fn(
         &CounterpointContext,
         &'a Score,
@@ -111,7 +111,7 @@ pub type CandidateRule = Arc<
 >;
 
 /// A rule refining the candidate chords for a harmony slot.
-pub type HarmonyRule = Arc<
+pub type HarmonyRule = Rc<
     dyn for<'a> Fn(
         &CounterpointContext,
         &'a Score,

@@ -1,7 +1,7 @@
 #![warn(clippy::pedantic)]
 #![allow(clippy::arc_with_non_send_sync)]
 
-use std::sync::Arc;
+use std::rc::Rc;
 
 use passacaglia_common::rational;
 use passacaglia_core::std_hept::{scales, Interval, Pitch, PITCH_CLASSES};
@@ -55,7 +55,7 @@ fn tie_start_note() {
 
 #[test]
 fn score_document() {
-    let ctx = std::sync::Arc::new(CounterpointContext::new(
+    let ctx = std::rc::Rc::new(CounterpointContext::new(
         1,
         Parameters {
             measure_length: rational(4),
@@ -76,7 +76,7 @@ fn score_document() {
 
 #[test]
 fn harmony_direction_below_last_voice() {
-    let ctx = Arc::new(CounterpointContext::new(
+    let ctx = Rc::new(CounterpointContext::new(
         1,
         Parameters {
             measure_length: rational(4),

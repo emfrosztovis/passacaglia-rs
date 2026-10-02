@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use passacaglia_common::rational_value;
 use passacaglia_core::std_hept::Pitch;
@@ -21,7 +21,7 @@ fn permitted_chords() -> Vec<Chord> {
 
 #[must_use]
 pub fn enforce_fixed_progression(prog: Vec<Option<Vec<Chord>>>) -> HarmonyRule {
-    Arc::new(move |_ctx, _s, cur, c| {
+    Rc::new(move |_ctx, _s, cur, c| {
         let c = c.expect("candidates initialized");
         let Some(chords) = prog.get(cur.index()).and_then(|c| c.as_deref()) else {
             return c;

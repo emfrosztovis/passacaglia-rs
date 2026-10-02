@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, rc::Rc};
 
 use passacaglia_common::rational;
 use passacaglia_core::std_hept;
@@ -56,7 +56,7 @@ fn main() {
 
     ctx.allow_unison = true;
 
-    let ctx = Arc::new(ctx);
+    let ctx = Rc::new(ctx);
 
     let score = 
         CounterpointScoreBuilder::new(ctx.clone())
@@ -68,9 +68,10 @@ fn main() {
     ;
 
     let mut solver = CounterpointSolver::new(ctx.clone());
-    solver.on_progress = Some(Box::new(|p| {
+
+    solver.set_reporter(|p| {
         println!("{} {} {}", p.iteration, p.furthest, p.measure_index);
-    }));
+    });
 
     solver.report_interval = 2000;
     solver.batch = 50;

@@ -5,7 +5,7 @@
 //! specific) and layers the rule registry and solver on top.
 //!
 //! Like the source it ports, the solver is single-threaded and its rule
-//! closures capture plain owned data. The `Arc`s shared across measures/voices
+//! closures capture plain owned data. The `Rc`s shared across measures/voices
 //! are therefore not `Send`/`Sync`; the `too_many_arguments`,
 //! `type_complexity`, `too_many_lines`, and `similar_names` allowances mirror
 //! the source's construction signatures, higher-ranked cursor types, and
@@ -37,8 +37,8 @@ pub mod solver;
 pub mod species;
 pub mod voice;
 
-/// Collect rule references into an `Arc`-wrapped `Vec`, avoiding the repetitive
-/// `Arc::new(&…)` boilerplate when populating a [`CounterpointContext`].
+/// Collect rule references into an `Rc`-wrapped `Vec`, avoiding the repetitive
+/// `Rc::new(&…)` boilerplate when populating a [`CounterpointContext`].
 ///
 /// ```ignore
 /// ctx.harmony_rules = import_rules![
@@ -59,11 +59,11 @@ pub mod voice;
 #[macro_export]
 macro_rules! import_rules {
     ($ty:ty; $($rule:path),+ $(,)?) => {{
-        let rules: Vec<$ty> = vec![$(::std::sync::Arc::new(&$rule)),+];
+        let rules: Vec<$ty> = vec![$(::std::rc::Rc::new(&$rule)),+];
         rules
     }};
     ($($rule:path),+ $(,)?) => {
-        vec![$(::std::sync::Arc::new(&$rule)),+]
+        vec![$(::std::rc::Rc::new(&$rule)),+]
     };
 }
 

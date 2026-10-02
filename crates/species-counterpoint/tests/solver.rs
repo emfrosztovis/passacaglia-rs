@@ -1,7 +1,7 @@
 #![warn(clippy::pedantic)]
 #![allow(clippy::arc_with_non_send_sync)]
 
-use std::sync::Arc;
+use std::rc::Rc;
 
 use passacaglia_common::rational;
 use passacaglia_core::std_hept::scales;
@@ -12,7 +12,7 @@ use passacaglia_species_counterpoint::solver::{CounterpointSolver, CounterpointS
 
 #[test]
 fn empty_score_is_immediately_goal() {
-    let ctx = Arc::new(CounterpointContext::new(
+    let ctx = Rc::new(CounterpointContext::new(
         2,
         Parameters {
             measure_length: rational(4),

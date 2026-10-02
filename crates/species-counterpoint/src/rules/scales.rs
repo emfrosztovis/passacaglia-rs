@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::rc::Rc;
 
 use passacaglia_core::std_hept::scales;
 use passacaglia_core::std_hept::{Interval, Pitch};
@@ -88,7 +88,7 @@ pub fn degree_matrix_preset_major() -> DegreeMatrix {
 
 #[must_use]
 pub fn enforce_directional_degree_matrix(m: DegreeMatrix) -> CandidateRule {
-    Arc::new(move |_ctx, s, cur, c, _ty| {
+    Rc::new(move |_ctx, s, cur, c, _ty| {
         let mut c = c.expect("candidates initialized");
         let Some(prev_cur) = cur.prev_global() else {
             return c;
@@ -138,7 +138,7 @@ pub fn enforce_directional_degree_matrix(m: DegreeMatrix) -> CandidateRule {
 
 #[must_use]
 pub fn enforce_minor(root: Pitch) -> CandidateRule {
-    Arc::new(move |_ctx, _s, cur, c, ty| {
+    Rc::new(move |_ctx, _s, cur, c, ty| {
         let voice = cur.parent().container();
         let scale = scales::complete_minor(root);
 

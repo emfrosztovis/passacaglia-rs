@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use passacaglia_common::Rational;
 use passacaglia_core::std_hept::{Pitch, Scale};
@@ -116,8 +116,8 @@ impl VoiceConstructor {
     pub fn make_voice(
         &self,
         index: usize,
-        ctx: &Arc<CounterpointContext>,
-        measures: Arc<[Measure]>,
+        ctx: &Rc<CounterpointContext>,
+        measures: Rc<[Measure]>,
         lower_range: Pitch,
         higher_range: Pitch,
         name: String,
@@ -139,13 +139,13 @@ impl VoiceConstructor {
 
 /// Builds a [`Score`] from fixed (cantus) and counterpoint voices.
 pub struct CounterpointScoreBuilder {
-    ctx: Arc<CounterpointContext>,
+    ctx: Rc<CounterpointContext>,
     voices: Vec<Voice>,
 }
 
 impl CounterpointScoreBuilder {
     #[must_use]
-    pub fn new(ctx: Arc<CounterpointContext>) -> Self {
+    pub fn new(ctx: Rc<CounterpointContext>) -> Self {
         CounterpointScoreBuilder {
             ctx,
             voices: Vec::new(),
@@ -178,7 +178,7 @@ impl CounterpointScoreBuilder {
         let voice = v.make_voice(
             self.voices.len(),
             &self.ctx,
-            Arc::from(ms),
+            Rc::from(ms),
             lower,
             higher,
             name.to_string(),
@@ -192,14 +192,14 @@ impl CounterpointScoreBuilder {
         let ms: Vec<Measure> = measures
             .iter()
             .map(|x| Measure {
-                notes: Arc::from(x.clone()),
+                notes: Rc::from(x.clone()),
                 duration: self.ctx.parameters.measure_length,
                 kind: MeasureKind::Fixed,
             })
             .collect();
         let voice = Voice::Fixed(FixedVoice {
             index: self.voices.len(),
-            measures: Arc::from(ms),
+            measures: Rc::from(ms),
             clef,
             name: "Cantus".to_string(),
         });

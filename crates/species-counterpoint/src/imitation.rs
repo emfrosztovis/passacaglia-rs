@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use passacaglia_core::std_hept::Pitch;
 
@@ -14,25 +14,25 @@ use crate::voice::{CounterpointVoice, Measure, MeasureCursor, MeasureKind, NonHa
 #[derive(Clone)]
 pub enum ImitationMeasure {
     Empty {
-        ctx: Arc<CounterpointContext>,
+        ctx: Rc<CounterpointContext>,
         melodic_context: MelodicContext,
         target_voice: usize,
         target_measure: i64,
     },
     Filled {
-        ctx: Arc<CounterpointContext>,
+        ctx: Rc<CounterpointContext>,
         melodic_context: MelodicContext,
         target_voice: usize,
         target_measure: i64,
-        target: Arc<[Note]>,
-        filled: Arc<[Note]>,
-        transform: Arc<dyn Fn(Pitch) -> Vec<Pitch>>,
+        target: Rc<[Note]>,
+        filled: Rc<[Note]>,
+        transform: Rc<dyn Fn(Pitch) -> Vec<Pitch>>,
     },
 }
 
 /// A candidate rule constraining candidates to a fixed set of pitches.
 fn fixed(pitches: Vec<Pitch>) -> CandidateRule {
-    Arc::new(move |_ctx, _s, _cur, c, _ty| {
+    Rc::new(move |_ctx, _s, _cur, c, _ty| {
         let mut c = c.expect("candidates initialized");
         c.filter(|p, _| pitches.contains(p));
         c
@@ -43,7 +43,7 @@ pub(crate) fn imitation_make_new_measure<'a>(
     cp: &CounterpointVoice,
     target_voice: usize,
     delay: i64,
-    transform: Arc<dyn Fn(Pitch) -> Vec<Pitch>>,
+    transform: Rc<dyn Fn(Pitch) -> Vec<Pitch>>,
     score: &'a Score,
     c: MeasureCursor<'a>,
 ) -> Vec<NewMeasure> {
@@ -52,7 +52,7 @@ pub(crate) fn imitation_make_new_measure<'a>(
         .map_or_else(empty_melodic_context, |p| p.melodic_context());
 
     let target_measure = c.index() as i64 - delay;
-    let target: Option<Arc<[Note]>> = if target_measure >= 0 {
+    let target: Option<Rc<[Note]>> = if target_measure >= 0 {
         score
             .voices
             .get(target_voice)
@@ -64,7 +64,7 @@ pub(crate) fn imitation_make_new_measure<'a>(
 
     let new_measure = match target {
         None => Measure {
-            notes: Arc::from(vec![Note::new(cp.ctx.parameters.measure_length, None, None)]),
+            notes: Rc::from(vec![Note::new(cp.ctx.parameters.measure_length, None, None)]),
             duration: cp.ctx.parameters.measure_length,
             kind: MeasureKind::Imitation(ImitationMeasure::Empty {
                 ctx: cp.ctx.clone(),
@@ -79,7 +79,7 @@ pub(crate) fn imitation_make_new_measure<'a>(
                 .map(|n| Note::new(n.duration, None, None))
                 .collect();
             Measure {
-                notes: Arc::from(notes),
+                notes: Rc::from(notes),
                 duration: cp.ctx.parameters.measure_length,
                 kind: MeasureKind::Imitation(ImitationMeasure::Filled {
                     ctx: cp.ctx.clone(),
@@ -87,7 +87,7 @@ pub(crate) fn imitation_make_new_measure<'a>(
                     target_voice,
                     target_measure,
                     target,
-                    filled: Arc::from(Vec::new()),
+                    filled: Rc::from(Vec::new()),
                     transform,
                 }),
             }
@@ -139,7 +139,7 @@ pub(crate) fn imitation_get_next_steps<'a>(
             })
             .collect();
         Measure {
-            notes: Arc::from(notes),
+            notes: Rc::from(notes),
             duration: measure.duration,
             kind: MeasureKind::Imitation(ImitationMeasure::Filled {
                 ctx: ctx.clone(),
@@ -147,7 +147,7 @@ pub(crate) fn imitation_get_next_steps<'a>(
                 target_voice: *target_voice,
                 target_measure: *target_measure,
                 target: target.clone(),
-                filled: Arc::from(new_filled),
+                filled: Rc::from(new_filled),
                 transform: transform.clone(),
             }),
         }
@@ -192,7 +192,7 @@ pub fn define_imitation(
     m: MelodicSettings,
     target_voice: usize,
     delay: i64,
-    transform: Arc<dyn Fn(Pitch) -> Vec<Pitch>>,
+    transform: Rc<dyn Fn(Pitch) -> Vec<Pitch>>,
 ) -> VoiceConstructor {
     VoiceConstructor {
         melody_settings: m,
