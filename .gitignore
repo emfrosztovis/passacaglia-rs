@@ -3,3 +3,5 @@ Cargo.lock
 opencode.json
 node_modules
 dist
+**/flamegraph.svg
+**/report.txt

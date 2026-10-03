@@ -51,7 +51,7 @@ fn consecutive_perfects() {
     );
     let score = builder.build(&scales::c::MAJOR, None);
     let note = score.voices[1].note_at(rational(4)).unwrap();
-    assert_eq!(forbid_perfects_by_similar_motion(&ctx, &score, note), 0.0);
+    assert_eq!(forbid_perfects_by_similar_motion()(&ctx, &score, note), 0.0);
 
     let mut builder = CounterpointScoreBuilder::new(ctx.clone());
     builder.cantus(
@@ -76,7 +76,7 @@ fn consecutive_perfects() {
     let score = builder.build(&scales::c::MAJOR, None);
     let note = score.voices[1].note_at(rational(4)).unwrap();
     assert_eq!(
-        forbid_perfects_by_similar_motion(&ctx, &score, note),
+        forbid_perfects_by_similar_motion()(&ctx, &score, note),
         f64::INFINITY
     );
 
@@ -103,7 +103,7 @@ fn consecutive_perfects() {
     let score = builder.build(&scales::c::MAJOR, None);
     let note = score.voices[1].note_at(rational(4)).unwrap();
     assert_eq!(
-        forbid_perfects_by_similar_motion(&ctx, &score, note),
+        forbid_perfects_by_similar_motion()(&ctx, &score, note),
         f64::INFINITY
     );
 
@@ -144,7 +144,7 @@ fn consecutive_perfects() {
     let score = builder.build(&scales::c::MAJOR, None);
     let note = score.voices[1].note_at(rational(4)).unwrap();
     assert_eq!(
-        forbid_perfects_by_similar_motion(&ctx, &score, note),
+        forbid_perfects_by_similar_motion()(&ctx, &score, note),
         f64::INFINITY
     );
 }
@@ -171,7 +171,7 @@ fn perfect_by_similar_motion() {
     let score = builder.build(&scales::c::MAJOR, None);
     let note = score.voices[1].note_at(rational(4)).unwrap();
     assert_eq!(
-        forbid_perfects_by_similar_motion(&ctx, &score, note),
+        forbid_perfects_by_similar_motion()(&ctx, &score, note),
         f64::INFINITY
     );
 }

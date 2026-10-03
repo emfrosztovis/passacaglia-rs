@@ -37,36 +37,6 @@ pub mod solver;
 pub mod species;
 pub mod voice;
 
-/// Collect rule references into an `Rc`-wrapped `Vec`, avoiding the repetitive
-/// `Rc::new(&…)` boilerplate when populating a [`CounterpointContext`].
-///
-/// ```ignore
-/// ctx.harmony_rules = import_rules![
-///     rules::enforce_functional_progression_major,
-///     rules::enforce_valid_chords,
-/// ];
-/// ```
-///
-/// The type-annotated form produces a `Vec` whose element type is already the
-/// concrete rule trait object, so it can be used where no coercion site exists
-/// (e.g. inside a `HashMap::from([…])` array):
-///
-/// ```ignore
-/// ctx.non_harmonic_tone_rules = HashMap::from([
-///     (NonHarmonicType::Neighbor, import_rules!(CandidateRule; rules::make_neighbor_tone)),
-/// ]);
-/// ```
-#[macro_export]
-macro_rules! import_rules {
-    ($ty:ty; $($rule:path),+ $(,)?) => {{
-        let rules: Vec<$ty> = vec![$(::std::rc::Rc::new(&$rule)),+];
-        rules
-    }};
-    ($($rule:path),+ $(,)?) => {
-        vec![$(::std::rc::Rc::new(&$rule)),+]
-    };
-}
-
 pub use basic::{CounterpointScoreBuilder, MelodicContext, MelodicSettings, Step, VoiceConstructor};
 pub use chord::{Chord, ChordElement, Harmony};
 pub use clef::{Clef, ClefType};

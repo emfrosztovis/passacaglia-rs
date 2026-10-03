@@ -1,10 +1,11 @@
+use std::rc::Rc;
+
 use passacaglia_common::rational;
 use passacaglia_core::std_hept::Scale;
 use passacaglia_core::structure::Container;
 
-use crate::chord::{chords, Chord, ChordCursor};
-use crate::context::{Candidates, CounterpointContext};
-use crate::score::Score;
+use crate::chord::{chords, Chord};
+use crate::context::{Candidates, HarmonyRule};
 
 fn get_degree_triads(i: usize, scale: &Scale) -> Vec<Chord> {
     let t1 = scale.at(i, rational(0));
@@ -31,37 +32,34 @@ fn triads(array: &[usize], scale: &Scale, c: Option<Candidates<Chord>>) -> Candi
 }
 
 #[must_use]
-pub fn enforce_functional_progression_major<'a>(
-    _ctx: &CounterpointContext,
-    s: &'a Score,
-    cur: ChordCursor<'a>,
-    c: Option<Candidates<Chord>>,
-) -> Candidates<Chord> {
-    let scale = &s.harmony.scale;
-    let prev = cur.prev().and_then(|p| s.harmony.item(p.index()).chord.as_ref());
+pub fn enforce_functional_progression_major() -> HarmonyRule {
+    Rc::new(move |_ctx, s, cur, c| {
+        let scale = &s.harmony.scale;
+        let prev = cur.prev().and_then(|p| s.harmony.item(p.index()).chord.as_ref());
 
-    let Some(prev) = prev else {
-        let tonic = chords::major().with_root(scale.root());
-        return match c {
-            Some(mut c) => {
-                c.filter(|x, _| *x == tonic);
-                c
-            }
-            None => Candidates::from_pairs(vec![(tonic, 0.0)]),
+        let Some(prev) = prev else {
+            let tonic = chords::major().with_root(scale.root());
+            return match c {
+                Some(mut c) => {
+                    c.filter(|x, _| *x == tonic);
+                    c
+                }
+                None => Candidates::from_pairs(vec![(tonic, 0.0)]),
+            };
         };
-    };
 
-    let Some(deg) = scale.get_exact_degree(&prev.root(), false) else {
-        return Candidates::new();
-    };
+        let Some(deg) = scale.get_exact_degree(&prev.root(), false) else {
+            return Candidates::new();
+        };
 
-    match deg.index {
-        0 => triads(&[0, 1, 2, 3, 4, 5], scale, c),
-        1 => triads(&[4, 6], scale, c),
-        2 => triads(&[3, 5], scale, c),
-        3 => triads(&[0, 1, 4, 6], scale, c),
-        4 | 6 => triads(&[0, 5], scale, c),
-        5 => triads(&[1, 3, 4], scale, c),
-        _ => unreachable!("valid scale degree"),
-    }
+        match deg.index {
+            0 => triads(&[0, 1, 2, 3, 4, 5], scale, c),
+            1 => triads(&[4, 6], scale, c),
+            2 => triads(&[3, 5], scale, c),
+            3 => triads(&[0, 1, 4, 6], scale, c),
+            4 | 6 => triads(&[0, 5], scale, c),
+            5 => triads(&[1, 3, 4], scale, c),
+            _ => unreachable!("valid scale degree"),
+        }
+    })
 }

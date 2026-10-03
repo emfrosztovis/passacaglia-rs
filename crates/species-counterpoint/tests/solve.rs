@@ -6,7 +6,7 @@ use std::rc::Rc;
 use passacaglia_common::rational;
 use passacaglia_core::std_hept::scales;
 use passacaglia_species_counterpoint::{
-    import_rules, rules, species1, species2, species3, species4, species5, CounterpointContext,
+    rules, species1, species2, species3, species4, species5, CounterpointContext,
     CounterpointScoreBuilder, CounterpointSolver, CounterpointSolverRewardStrategy,
     NonHarmonicType, Parameters, Score,
 };
@@ -20,47 +20,47 @@ fn context() -> Rc<CounterpointContext> {
         },
     );
 
-    ctx.harmony_rules = import_rules![
-        rules::enforce_functional_progression_major,
-        rules::enforce_valid_chords,
+    ctx.harmony_rules = vec![
+        rules::enforce_functional_progression_major(),
+        rules::enforce_valid_chords(),
     ];
 
-    ctx.local_rules = import_rules![
-        rules::limit_consecutive_leaps,
-        rules::forbid_perfects_by_similar_motion,
-        rules::forbid_nearby_perfects,
-        rules::prioritize_voice_motion,
-        rules::enforce_vertical_consonance_with_moving_local,
+    ctx.local_rules = vec![
+        rules::limit_consecutive_leaps(),
+        rules::forbid_perfects_by_similar_motion(),
+        rules::forbid_nearby_perfects(),
+        rules::prioritize_voice_motion(),
+        rules::enforce_vertical_consonance_with_moving_local(),
     ];
 
-    ctx.candidate_rules_before = import_rules![
-        rules::enforce_scale_tones,
-        rules::enforce_stepwise_around_short_notes,
-        rules::enforce_passing_tones,
-        rules::enforce_neighbor_tones,
-        rules::enforce_suspension,
-        rules::forbid_voice_overlapping2,
-        rules::avoid_repeat2,
+    ctx.candidate_rules_before = vec![
+        rules::enforce_scale_tones(),
+        rules::enforce_stepwise_around_short_notes(),
+        rules::enforce_passing_tones(),
+        rules::enforce_neighbor_tones(),
+        rules::enforce_suspension(),
+        rules::forbid_voice_overlapping2(),
+        rules::avoid_repeat2(),
     ];
 
-    ctx.candidate_rules_after = import_rules![
-        rules::enforce_melody_intervals,
-        rules::enforce_leap_preparation,
-        rules::enforce_leap_resolution,
+    ctx.candidate_rules_after = vec![
+        rules::enforce_melody_intervals(),
+        rules::enforce_leap_preparation(),
+        rules::enforce_leap_resolution(),
     ];
 
-    ctx.harmonic_tone_rules = import_rules![rules::enforce_chord_tone];
+    ctx.harmonic_tone_rules = vec![rules::enforce_chord_tone()];
 
-    ctx.non_harmonic_tone_rules.insert(NonHarmonicType::Neighbor, import_rules![
-        rules::make_neighbor_tone,
+    ctx.non_harmonic_tone_rules.insert(NonHarmonicType::Neighbor, vec![
+        rules::make_neighbor_tone(),
     ]);
 
-    ctx.non_harmonic_tone_rules.insert(NonHarmonicType::PassingTone, import_rules![
-        rules::make_passing_tone,
+    ctx.non_harmonic_tone_rules.insert(NonHarmonicType::PassingTone, vec![
+        rules::make_passing_tone(),
     ]);
 
-    ctx.non_harmonic_tone_rules.insert(NonHarmonicType::Suspension, import_rules![
-        rules::make_suspension,
+    ctx.non_harmonic_tone_rules.insert(NonHarmonicType::Suspension, vec![
+        rules::make_suspension(),
     ]);
 
     ctx.allow_unison = true;

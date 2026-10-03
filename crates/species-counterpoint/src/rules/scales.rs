@@ -5,39 +5,34 @@ use passacaglia_core::std_hept::scales;
 use passacaglia_core::std_hept::{Interval, Pitch};
 use passacaglia_macros::std_hept_interval as interval;
 
-use crate::context::{CandidateRule, Candidates, CounterpointContext};
+use crate::context::{CandidateRule, Candidates};
 use crate::rules::utils::{note_pitch, prev_different, sign_of};
-use crate::score::Score;
-use crate::voice::{NonHarmonicType, NoteCursor};
+use crate::voice::NonHarmonicType;
 
 pub use crate::context::parse_preferred;
 
 #[must_use]
-pub fn enforce_scale_tones<'a>(
-    _ctx: &CounterpointContext,
-    s: &'a Score,
-    cur: NoteCursor<'a>,
-    c: Option<Candidates<Pitch>>,
-    _ty: Option<NonHarmonicType>,
-) -> Candidates<Pitch> {
-    let voice = cur.parent().container();
-    let Some((lo, hi)) = voice.ranges() else {
-        return Candidates::new();
-    };
-    let scale_tones = Candidates::from_pairs(
-        s.harmony
-            .scale
-            .get_degrees_in_range(&lo, &hi)
-            .iter()
-            .map(|d| (d.to_pitch(), 0.0)),
-    );
-    match c {
-        None => scale_tones,
-        Some(mut c) => {
-            c.intersect(&scale_tones);
-            c
+pub fn enforce_scale_tones() -> CandidateRule {
+    Rc::new(move |_ctx, s, cur, c, _ty| {
+        let voice = cur.parent().container();
+        let Some((lo, hi)) = voice.ranges() else {
+            return Candidates::new();
+        };
+        let scale_tones = Candidates::from_pairs(
+            s.harmony
+                .scale
+                .get_degrees_in_range(&lo, &hi)
+                .iter()
+                .map(|d| (d.to_pitch(), 0.0)),
+        );
+        match c {
+            None => scale_tones,
+            Some(mut c) => {
+                c.intersect(&scale_tones);
+                c
+            }
         }
-    }
+    })
 }
 
 /// A preferred-interval transition for a scale degree.
