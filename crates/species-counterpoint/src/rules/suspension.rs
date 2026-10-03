@@ -16,7 +16,7 @@ pub fn enforce_suspension() -> CandidateRule {
         {
             let v = cur.parent().container();
             let mut is_chord_tone = true;
-            for voice in s.voices.iter() {
+            for voice in &s.voices {
                 if voice.index() == v.index() {
                     continue;
                 }

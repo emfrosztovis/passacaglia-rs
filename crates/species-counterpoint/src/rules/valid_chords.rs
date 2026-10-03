@@ -37,7 +37,7 @@ pub fn enforce_valid_chords() -> HarmonyRule {
         let mut basses: Vec<Pitch> = scale.degrees.clone();
         let mut notes: Vec<Pitch> = Vec::new();
 
-        for v in s.voices.iter() {
+        for v in &s.voices {
             let Some(m) = v.measures().get(cur.index()) else {
                 continue;
             };

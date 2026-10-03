@@ -1,5 +1,7 @@
 use std::rc::Rc;
 
+use im::Vector;
+
 use passacaglia_common::Rational;
 use passacaglia_core::std_hept::{Pitch, Scale};
 use passacaglia_macros::std_hept_pitch as pitch;
@@ -85,6 +87,10 @@ pub struct Step {
     pub advanced: Rational,
     pub cost: f64,
     pub debug: String,
+    /// The score that results from writing `measure`, when it was already
+    /// constructed (e.g. to evaluate local rules). Reused by the solver instead
+    /// of rebuilding it with `replace_measure` + `replace_voice`.
+    pub score: Option<Score>,
 }
 
 /// A new measure (and cost) produced by a voice's `make_new_measure`.
@@ -118,7 +124,7 @@ impl VoiceConstructor {
         &self,
         index: usize,
         ctx: &Rc<CounterpointContext>,
-        measures: Rc<[Measure]>,
+        measures: Vector<Measure>,
         lower_range: Pitch,
         higher_range: Pitch,
         name: String,
@@ -179,7 +185,7 @@ impl CounterpointScoreBuilder {
         let voice = v.make_voice(
             self.voices.len(),
             &self.ctx,
-            Rc::from(ms),
+            ms.into_iter().collect(),
             lower,
             higher,
             name.to_string(),
@@ -200,7 +206,7 @@ impl CounterpointScoreBuilder {
             .collect();
         let voice = Voice::Fixed(FixedVoice {
             index: self.voices.len(),
-            measures: Rc::from(ms),
+            measures: ms.into_iter().collect(),
             clef,
             name: "Cantus".to_string(),
         });

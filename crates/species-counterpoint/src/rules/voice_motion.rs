@@ -21,7 +21,7 @@ pub fn prioritize_voice_motion() -> LocalRule {
         let v = x1.parent().container();
 
         let mut cost = 0.0;
-        for voice in s.voices.iter() {
+        for voice in &s.voices {
             if voice.index() == v.index() {
                 continue;
             }

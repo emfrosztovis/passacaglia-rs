@@ -300,6 +300,7 @@ impl CounterpointContext {
                 cost: cost + cost_offset,
                 advanced: note.span(),
                 debug: debug.join("\n"),
+                score: Some(new_score),
             });
         }
         steps

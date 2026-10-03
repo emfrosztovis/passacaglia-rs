@@ -1,5 +1,7 @@
 use std::cmp::Ordering;
+use std::collections::hash_map::DefaultHasher;
 use std::collections::{BinaryHeap, HashMap};
+use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
 use passacaglia_common::{rational_value, Rational};
@@ -44,6 +46,7 @@ enum Target {
 #[allow(dead_code)]
 struct Node {
     pub score: Rc<Score>,
+    pub score_hash: u64,
     ctx: Rc<CounterpointContext>,
     pub measure_index: usize,
     pub voice_index: Option<usize>,
@@ -54,6 +57,12 @@ struct Node {
     pub debug: String,
     pub is_goal: bool,
     target: Option<Target>,
+}
+
+fn score_hash(score: &Score) -> u64 {
+    let mut h = DefaultHasher::new();
+    score.hash(&mut h);
+    h.finish()
 }
 
 fn find_writable(score: &Score, ctx: &CounterpointContext, measure_index: usize) -> Option<Target> {
@@ -104,8 +113,10 @@ impl Node {
             mi += 1;
         }
         let is_goal = target.is_none();
+        let score_hash = score_hash(&score);
         Node {
             score,
+            score_hash,
             ctx,
             measure_index: mi,
             voice_index,
@@ -153,8 +164,12 @@ impl Node {
                 nexts
                     .into_iter()
                     .filter_map(|step| {
-                        let new_voice = v.replace_measure(m.index(), step.measure);
-                        let new_score = self.score.replace_voice(voice_index, new_voice);
+                        let new_score = if let Some(s) = step.score {
+                            s
+                        } else {
+                            let new_voice = v.replace_measure(m.index(), step.measure);
+                            self.score.replace_voice(voice_index, new_voice)
+                        };
                         if self
                             .ctx
                             .global_rules
@@ -211,6 +226,11 @@ impl PartialOrd for HeapEntry {
     }
 }
 
+/// Parent-pointers keyed by a score's cached structural hash (with the full
+/// score kept for collision resolution), so lookups avoid re-hashing the whole
+/// score on every neighbor.
+type ParentMap = HashMap<u64, Vec<(Rc<Score>, Option<Rc<Score>>)>>;
+
 /// Best-first / beam search solver over scores.
 pub struct CounterpointSolver {
     ctx: Rc<CounterpointContext>,
@@ -218,7 +238,7 @@ pub struct CounterpointSolver {
     pub remove_old: usize,
     pub report_interval: usize,
     on_progress: Option<Box<dyn FnMut(CounterpointSolverProgress)>>,
-    parents: Option<HashMap<Rc<Score>, Option<Rc<Score>>>>,
+    parents: Option<ParentMap>,
     start: Option<Rc<Score>>,
 }
 
@@ -241,7 +261,7 @@ impl CounterpointSolver {
     }
 
     #[must_use]
-    pub fn parents(&self) -> Option<&HashMap<Rc<Score>, Option<Rc<Score>>>> {
+    pub fn parents(&self) -> Option<&ParentMap> {
         self.parents.as_ref()
     }
 
@@ -260,7 +280,7 @@ impl CounterpointSolver {
         };
 
         let mut open: BinaryHeap<HeapEntry> = BinaryHeap::new();
-        let mut parents: HashMap<Rc<Score>, Option<Rc<Score>>> = HashMap::new();
+        let mut parents: ParentMap = HashMap::new();
         let start = Node::new(
             Rc::new(s.clone()),
             self.ctx.clone(),
@@ -273,7 +293,10 @@ impl CounterpointSolver {
             String::new(),
         );
         let start_score = start.score.clone();
-        parents.insert(start_score.clone(), None);
+        parents
+            .entry(start.score_hash)
+            .or_default()
+            .push((start_score.clone(), None));
         open.push(HeapEntry {
             priority: start.cost - f * start.n_step,
             seq: 0,
@@ -320,10 +343,17 @@ impl CounterpointSolver {
                 let neighbors: Vec<Node> = current
                     .get_neighbors()
                     .into_iter()
-                    .filter(|n| !parents.contains_key(&n.score))
+                    .filter(|n| {
+                        parents
+                            .get(&n.score_hash)
+                            .is_none_or(|bucket| bucket.iter().all(|(s, _)| s != &n.score))
+                    })
                     .collect();
                 for n in &neighbors {
-                    parents.insert(n.score.clone(), Some(current.score.clone()));
+                    parents
+                        .entry(n.score_hash)
+                        .or_default()
+                        .push((n.score.clone(), Some(current.score.clone())));
                 }
                 new_nodes.extend(neighbors);
                 n_node += 1;

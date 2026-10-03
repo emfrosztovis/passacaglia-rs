@@ -16,6 +16,7 @@ license = "AGPL-3.0-only"
 repository = "https://github.com/anomalyco/passacaglia-rs"
 
 [workspace.dependencies]
+im = "15"
 num-rational = "0.4"
 num-traits = "0.2"
 proc-macro2 = "1"

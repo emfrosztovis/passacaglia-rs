@@ -1,5 +1,7 @@
 use std::rc::Rc;
 
+use im::Vector;
+
 use passacaglia_common::{rational, Rational};
 use passacaglia_core::std_hept::{Interval, Pitch, PITCH_CLASSES};
 use passacaglia_core::structure::{Container, Cursor, DurationalElement, TemporalElement};
@@ -234,7 +236,7 @@ pub type ChordCursor<'a> = Cursor<'a, Harmony, ()>;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Harmony {
     pub scale: passacaglia_core::std_hept::Scale,
-    pub elements: Rc<[ChordElement]>,
+    pub elements: Vector<ChordElement>,
 }
 
 impl Harmony {
@@ -242,21 +244,20 @@ impl Harmony {
     pub fn new(scale: passacaglia_core::std_hept::Scale, e: Vec<ChordElement>) -> Harmony {
         Harmony {
             scale,
-            elements: Rc::from(e),
+            elements: e.into_iter().collect(),
         }
     }
 
     #[must_use]
     pub fn replace_chord(&self, i: usize, chord: Option<Chord>) -> Harmony {
-        let mut e = self.elements.to_vec();
-        let old = e[i].clone();
-        e[i] = ChordElement {
+        let old = self.elements[i].clone();
+        let e = ChordElement {
             duration: old.duration,
             chord,
         };
         Harmony {
             scale: self.scale.clone(),
-            elements: Rc::from(e),
+            elements: self.elements.update(i, e),
         }
     }
 }
@@ -273,8 +274,9 @@ impl Container for Harmony {
     }
 
     fn start(&self, i: usize) -> Rational {
-        self.elements[..i]
+        self.elements
             .iter()
+            .take(i)
             .fold(rational(0), |acc, e| acc + e.duration)
     }
 

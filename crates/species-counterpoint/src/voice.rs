@@ -1,6 +1,8 @@
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
+use im::Vector;
+
 use passacaglia_common::{rational, Rational};
 use passacaglia_core::std_hept::Pitch;
 use passacaglia_core::structure::{Container, Cursor, DurationalElement, TemporalElement};
@@ -176,6 +178,7 @@ impl Measure {
                             advanced: rational(0),
                             cost: nm.cost,
                             debug: "from_blank".to_string(),
+                            score: None,
                         })
                         .collect()
                 } else {
@@ -229,7 +232,7 @@ impl Container for Measure {
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct FixedVoice {
     pub index: usize,
-    pub measures: Rc<[Measure]>,
+    pub measures: Vector<Measure>,
     pub clef: Clef,
     pub name: String,
 }
@@ -254,7 +257,7 @@ pub enum VoiceKindTag {
 pub struct CounterpointVoice {
     pub index: usize,
     pub ctx: Rc<CounterpointContext>,
-    pub measures: Rc<[Measure]>,
+    pub measures: Vector<Measure>,
     pub lower_range: Pitch,
     pub higher_range: Pitch,
     pub name: String,
@@ -300,10 +303,8 @@ impl CounterpointVoice {
 
     #[must_use]
     pub fn replace_measure(&self, i: usize, m: Measure) -> CounterpointVoice {
-        let mut ms = self.measures.to_vec();
-        ms[i] = m;
         let mut v = self.clone();
-        v.measures = Rc::from(ms);
+        v.measures = self.measures.update(i, m);
         v
     }
 }
@@ -325,7 +326,7 @@ impl Voice {
     }
 
     #[must_use]
-    pub fn measures(&self) -> &[Measure] {
+    pub fn measures(&self) -> &Vector<Measure> {
         match self {
             Voice::Fixed(f) => &f.measures,
             Voice::Counterpoint(cp) => &cp.measures,
@@ -385,10 +386,8 @@ impl Voice {
     pub fn replace_measure(&self, i: usize, m: Measure) -> Voice {
         match self {
             Voice::Fixed(f) => {
-                let mut ms = f.measures.to_vec();
-                ms[i] = m;
                 Voice::Fixed(FixedVoice {
-                    measures: Rc::from(ms),
+                    measures: f.measures.update(i, m),
                     ..f.clone()
                 })
             }
@@ -410,8 +409,9 @@ impl Container for Voice {
     }
 
     fn start(&self, i: usize) -> Rational {
-        self.measures()[..i]
+        self.measures()
             .iter()
+            .take(i)
             .fold(rational(0), |acc, m| acc + m.duration)
     }
 

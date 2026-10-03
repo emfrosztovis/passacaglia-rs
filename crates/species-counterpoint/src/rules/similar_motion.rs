@@ -18,7 +18,7 @@ pub fn forbid_perfects_by_similar_motion() -> LocalRule {
         let v = x1.parent().container();
         let sign0 = sign_of(px0.distance_to(&px1));
 
-        for voice in s.voices.iter() {
+        for voice in &s.voices {
             if voice.index() == v.index() {
                 continue;
             }

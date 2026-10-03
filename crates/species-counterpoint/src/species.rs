@@ -151,6 +151,7 @@ pub(crate) fn fake_get_next_steps(fm: &FakeMeasure) -> Vec<Step> {
                 advanced: rational(1),
                 cost: fc.cost,
                 debug: "from_fake".to_string(),
+                score: None,
             }
         })
         .collect()
@@ -259,7 +260,7 @@ fn vdiff(c: MeasureCursor<'_>, score: &Score, name: &str) -> bool {
     }
     let mut total = 0usize;
     let mut same = 0usize;
-    for v in score.voices.iter() {
+    for v in &score.voices {
         if let Some(m) = v.measures().get(c.index())
             && let Some(sn) = m.schema_name()
         {

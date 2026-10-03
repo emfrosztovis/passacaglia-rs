@@ -160,6 +160,7 @@ pub(crate) fn imitation_get_next_steps<'a>(
             advanced: note.duration,
             cost: 0.0,
             debug: "imitate_blank".to_string(),
+            score: None,
         }];
     };
 

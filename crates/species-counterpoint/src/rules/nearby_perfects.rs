@@ -24,7 +24,7 @@ pub fn forbid_nearby_perfects() -> LocalRule {
 
         if x1.index() == 0 {
             let t1 = x1.global_time();
-            for voice in s.voices.iter() {
+            for voice in &s.voices {
                 if voice.index() == v.index() {
                     continue;
                 }
@@ -74,7 +74,7 @@ pub fn forbid_nearby_perfects() -> LocalRule {
                 return 0.0;
             }
 
-            for voice in s.voices.iter() {
+            for voice in &s.voices {
                 if voice.index() == v.index() {
                     continue;
                 }

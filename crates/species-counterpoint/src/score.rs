@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use im::Vector;
 
 use passacaglia_common::Rational;
 
@@ -15,7 +15,7 @@ pub struct Parameters {
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Score {
     pub parameters: Parameters,
-    pub voices: Rc<[Voice]>,
+    pub voices: Vector<Voice>,
     pub harmony: Harmony,
 }
 
@@ -24,7 +24,7 @@ impl Score {
     pub fn new(parameters: Parameters, voices: Vec<Voice>, harmony: Harmony) -> Score {
         Score {
             parameters,
-            voices: Rc::from(voices),
+            voices: voices.into_iter().collect(),
             harmony,
         }
     }
@@ -40,11 +40,9 @@ impl Score {
 
     #[must_use]
     pub fn replace_voice(&self, i: usize, v: Voice) -> Score {
-        let mut vs = self.voices.to_vec();
-        vs[i] = v;
         Score {
             parameters: self.parameters,
-            voices: Rc::from(vs),
+            voices: self.voices.update(i, v),
             harmony: self.harmony.clone(),
         }
     }
