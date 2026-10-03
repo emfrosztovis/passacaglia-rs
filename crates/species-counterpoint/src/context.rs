@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::hash::Hash;
 use std::rc::Rc;
 
 use passacaglia_core::std_hept::{Interval, Pitch};
@@ -9,17 +8,22 @@ use crate::chord::{Chord, ChordCursor};
 use crate::score::{Parameters, Score};
 use crate::voice::{Measure, Note, NoteCursor, NonHarmonicType};
 
-/// A cost map keyed by candidate (pitch or chord).
+/// A cost map keyed by candidate (pitch or chord), stored as an ordered list.
+///
+/// Candidate sets are small (scale tones in a voice range), so a linear-scan
+/// `Vec` is both faster and — unlike `HashMap` — deterministic: insertion order
+/// is preserved, mirroring the TypeScript `HashMap` (a `Map` with insertion
+/// order). `set` updates the value in place without changing position.
 #[derive(Debug, Clone)]
-pub struct Candidates<T: Hash + Eq>(HashMap<T, f64>);
+pub struct Candidates<T: Clone + Eq>(Vec<(T, f64)>);
 
-impl<T: Hash + Eq> Default for Candidates<T> {
+impl<T: Clone + Eq> Default for Candidates<T> {
     fn default() -> Self {
-        Candidates(HashMap::new())
+        Candidates(Vec::new())
     }
 }
 
-impl<T: Hash + Eq> Candidates<T> {
+impl<T: Clone + Eq> Candidates<T> {
     #[must_use]
     pub fn new() -> Self {
         Self::default()
@@ -27,7 +31,11 @@ impl<T: Hash + Eq> Candidates<T> {
 
     #[must_use]
     pub fn from_pairs(iter: impl IntoIterator<Item = (T, f64)>) -> Self {
-        Candidates(iter.into_iter().collect())
+        let mut c = Candidates::new();
+        for (k, v) in iter {
+            c.set(k, v);
+        }
+        c
     }
 
     #[must_use]
@@ -42,52 +50,68 @@ impl<T: Hash + Eq> Candidates<T> {
 
     #[must_use]
     pub fn get(&self, k: &T) -> Option<f64> {
-        self.0.get(k).copied()
+        self.0.iter().find(|(ek, _)| ek == k).map(|(_, v)| *v)
     }
 
     #[must_use]
     pub fn contains(&self, k: &T) -> bool {
-        self.0.contains_key(k)
+        self.0.iter().any(|(ek, _)| ek == k)
     }
 
     pub fn set(&mut self, k: T, v: f64) {
-        self.0.insert(k, v);
+        if let Some(entry) = self.0.iter_mut().find(|(ek, _)| *ek == k) {
+            entry.1 = v;
+        } else {
+            self.0.push((k, v));
+        }
     }
 
     pub fn remove(&mut self, k: &T) {
-        self.0.remove(k);
+        self.0.retain(|(ek, _)| ek != k);
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&T, &f64)> {
-        self.0.iter()
+        self.0.iter().map(|(k, v)| (k, v))
     }
 
     pub fn filter(&mut self, pred: impl Fn(&T, f64) -> bool) {
-        self.0.retain(|k, v| pred(k, *v));
+        self.0.retain(|(k, v)| pred(k, *v));
     }
 
     pub fn filter_map(&mut self, pred: impl Fn(&T, f64) -> Option<f64>) {
-        let mut new = HashMap::new();
-        for (k, v) in self.0.drain() {
-            if let Some(nv) = pred(&k, v) {
-                new.insert(k, nv);
+        let mut i = 0;
+        while i < self.0.len() {
+            let r = pred(&self.0[i].0, self.0[i].1);
+            match r {
+                Some(nv) => {
+                    self.0[i].1 = nv;
+                    i += 1;
+                }
+                None => {
+                    self.0.remove(i);
+                }
             }
         }
-        self.0 = new;
     }
 
     pub fn intersect(&mut self, other: &Candidates<T>) {
-        self.0.retain(|k, _| other.0.contains_key(k));
+        self.0.retain(|(k, _)| other.contains(k));
     }
 
     pub fn intersect_with(&mut self, other: &Candidates<T>, combine: impl Fn(f64, f64) -> f64) {
-        let mut new = HashMap::new();
-        for (k, v) in self.0.drain() {
-            if let Some(ov) = other.0.get(&k) {
-                new.insert(k, combine(v, *ov));
+        let mut i = 0;
+        while i < self.0.len() {
+            let ov = other.get(&self.0[i].0);
+            match ov {
+                Some(ov) => {
+                    self.0[i].1 = combine(self.0[i].1, ov);
+                    i += 1;
+                }
+                None => {
+                    self.0.remove(i);
+                }
             }
         }
-        self.0 = new;
     }
 }
 
@@ -111,14 +135,14 @@ pub type CandidateRule = Rc<
 >;
 
 /// A rule refining the candidate chords for a harmony slot.
-pub type HarmonyRule = Rc<
-    dyn for<'a> Fn(
-        &CounterpointContext,
-        &'a Score,
-        ChordCursor<'a>,
-        Option<Candidates<Chord>>,
-    ) -> Candidates<Chord>,
->;
+pub type HarmonyRule = Rc<HarmonyRuleFn>;
+
+pub type HarmonyRuleFn = dyn for<'a> Fn(
+    &CounterpointContext,
+    &'a Score,
+    ChordCursor<'a>,
+    Option<Candidates<Chord>>,
+) -> Candidates<Chord>;
 
 /// Rule registry, cost settings, and candidate-generation helpers.
 pub struct CounterpointContext {

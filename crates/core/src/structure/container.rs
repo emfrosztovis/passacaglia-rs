@@ -11,6 +11,13 @@ pub trait Container {
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
+
+    /// Whether children are laid out back-to-back (`start(i + 1) == start(i) +
+    /// span(i)`). Sequential containers can navigate cursors in O(1) by adding or
+    /// subtracting a span instead of recomputing the prefix sum.
+    fn is_sequential(&self) -> bool {
+        false
+    }
     /// Local start time of child `i`.
     fn start(&self, i: usize) -> Rational;
     /// Duration (or extent) of child `i`.
@@ -45,6 +52,23 @@ pub trait Container {
 
     /// The cursor of the element containing `time` (start inclusive, end exclusive).
     fn cursor_at_time(&self, time: Rational) -> Option<Cursor<'_, Self, ()>> {
+        if self.is_sequential() {
+            let mut s = self.start(0);
+            for i in 0..self.len() {
+                let e = s + self.span(i);
+                if s <= time && e > time {
+                    return Some(Cursor {
+                        container: self,
+                        index: i,
+                        local_time: s,
+                        global_time: s,
+                        parent: (),
+                    });
+                }
+                s = e;
+            }
+            return None;
+        }
         for i in 0..self.len() {
             let s = self.start(i);
             if s <= time && s + self.span(i) > time {
@@ -56,6 +80,24 @@ pub trait Container {
 
     /// The cursor of the last element strictly before `time`.
     fn cursor_before_time(&self, time: Rational) -> Option<Cursor<'_, Self, ()>> {
+        if self.is_sequential() {
+            let mut last = None;
+            let mut s = self.start(0);
+            for i in 0..self.len() {
+                if s >= time {
+                    return last;
+                }
+                last = Some(Cursor {
+                    container: self,
+                    index: i,
+                    local_time: s,
+                    global_time: s,
+                    parent: (),
+                });
+                s += self.span(i);
+            }
+            return last;
+        }
         let mut last = None;
         for i in 0..self.len() {
             if self.start(i) >= time {
@@ -140,7 +182,11 @@ impl<'a, C: Container + ?Sized, P: Copy> Cursor<'a, C, P> {
             return None;
         }
         let new_index = self.index - 1;
-        let new_local = self.container.start(new_index);
+        let new_local = if self.container.is_sequential() {
+            self.local_time - self.container.span(new_index)
+        } else {
+            self.container.start(new_index)
+        };
         let parent_global = self.global_time - self.local_time;
         Some(Cursor {
             container: self.container,
@@ -156,7 +202,11 @@ impl<'a, C: Container + ?Sized, P: Copy> Cursor<'a, C, P> {
             return None;
         }
         let new_index = self.index + 1;
-        let new_local = self.container.start(new_index);
+        let new_local = if self.container.is_sequential() {
+            self.local_time + self.container.span(self.index)
+        } else {
+            self.container.start(new_index)
+        };
         let parent_global = self.global_time - self.local_time;
         Some(Cursor {
             container: self.container,

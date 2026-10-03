@@ -34,6 +34,10 @@ impl<T: DurationalElement> Container for SequentialContainer<T> {
         self.elements.len()
     }
 
+    fn is_sequential(&self) -> bool {
+        true
+    }
+
     fn start(&self, i: usize) -> Rational {
         self.starts[i]
     }

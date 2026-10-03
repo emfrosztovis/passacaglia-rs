@@ -208,6 +208,10 @@ impl Container for Measure {
         self.notes.len()
     }
 
+    fn is_sequential(&self) -> bool {
+        true
+    }
+
     fn start(&self, i: usize) -> Rational {
         note_start(&self.notes, i)
     }
@@ -399,6 +403,10 @@ impl Container for Voice {
 
     fn len(&self) -> usize {
         self.measures().len()
+    }
+
+    fn is_sequential(&self) -> bool {
+        true
     }
 
     fn start(&self, i: usize) -> Rational {

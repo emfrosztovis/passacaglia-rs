@@ -268,6 +268,10 @@ impl Container for Harmony {
         self.elements.len()
     }
 
+    fn is_sequential(&self) -> bool {
+        true
+    }
+
     fn start(&self, i: usize) -> Rational {
         self.elements[..i]
             .iter()

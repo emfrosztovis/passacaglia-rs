@@ -35,9 +35,7 @@ use passacaglia_core::std_hept;
 use passacaglia_core::structure::Container;
 use passacaglia_musicxml::ToMxl;
 use passacaglia_species_counterpoint::{
-    CandidateRule, CounterpointContext, CounterpointScoreBuilder, CounterpointSolver,
-    CounterpointSolverProgress, CounterpointSolverRewardStrategy, NonHarmonicType, Parameters,
-    Score, import_rules, rules, species5,
+    CandidateRule, CounterpointContext, CounterpointScoreBuilder, CounterpointSolver, CounterpointSolverProgress, CounterpointSolverRewardStrategy, NonHarmonicType, Parameters, Score, import_rules, rules, species1, species5,
 };
 
 /// A solver event that crosses the thread boundary. Every variant is `Send`.
@@ -199,7 +197,7 @@ fn score_to_playable(score: &Score) -> serde_json::Value {
 /// publishing progress and the final result over the broadcast channel.
 fn run_solver(tx: &broadcast::Sender<ServerEvent>, shared: &Arc<SharedState>) {
     let mut ctx = CounterpointContext::new(
-        4,
+        8,
         Parameters {
             measure_length: rational(4),
         },
@@ -259,7 +257,7 @@ fn run_solver(tx: &broadcast::Sender<ServerEvent>, shared: &Arc<SharedState>) {
         .soprano(&species5())
         .alto(&species5())
         .tenor(&species5())
-        // .bass(&species5())
+        .bass(&species5())
         .build(&std_hept::scales::c::MAJOR, None);
 
     let mut solver = CounterpointSolver::new(ctx.clone());
@@ -274,13 +272,13 @@ fn run_solver(tx: &broadcast::Sender<ServerEvent>, shared: &Arc<SharedState>) {
         let _ = progress_tx.send(ServerEvent::Progress(p));
     });
 
-    solver.report_interval = 2000;
+    solver.report_interval = 1000;
     solver.batch = 50;
     solver.remove_old = 5;
 
     let solution = solver.a_star(
         &score,
-        CounterpointSolverRewardStrategy::Constant { value: 50.0 },
+        CounterpointSolverRewardStrategy::Constant { value: 25.0 },
     );
 
     if let Some(s) = solution {
