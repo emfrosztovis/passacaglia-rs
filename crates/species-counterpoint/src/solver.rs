@@ -29,7 +29,7 @@ pub struct CounterpointSolverProgress {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum NodeKind {
+pub enum NodeKind {
     Initial,
     Harmony,
     Note,
@@ -57,6 +57,30 @@ struct Node {
     pub debug: String,
     pub is_goal: bool,
     target: Option<Target>,
+    id: usize,
+    parent: Option<usize>,
+}
+
+/// A retained node of the search tree, exposed after the search finishes for
+/// visualization. It carries an explicit `id`, the `parent` link, the list of
+/// discovered `children`, and the number of children produced when the node was
+/// expanded (`n_expanded`). Unlike [`Node`], this keeps the `Rc<Score>` so the
+/// score can be serialized on demand.
+#[derive(Clone)]
+pub struct SearchNode {
+    pub id: usize,
+    pub parent: Option<usize>,
+    pub children: Vec<usize>,
+    pub score: Rc<Score>,
+    pub measure_index: usize,
+    pub voice_index: Option<usize>,
+    pub kind: NodeKind,
+    pub n_step: f64,
+    pub cost: f64,
+    pub this_cost: f64,
+    pub debug: String,
+    pub is_goal: bool,
+    pub n_expanded: usize,
 }
 
 fn score_hash(score: &Score) -> u64 {
@@ -127,6 +151,26 @@ impl Node {
             debug,
             is_goal,
             target,
+            id: 0,
+            parent: None,
+        }
+    }
+
+    fn to_search_node(&self) -> SearchNode {
+        SearchNode {
+            id: self.id,
+            parent: self.parent,
+            children: Vec::new(),
+            score: self.score.clone(),
+            measure_index: self.measure_index,
+            voice_index: self.voice_index,
+            kind: self.kind,
+            n_step: self.n_step,
+            cost: self.cost,
+            this_cost: self.this_cost,
+            debug: self.debug.clone(),
+            is_goal: self.is_goal,
+            n_expanded: 0,
         }
     }
 
@@ -240,6 +284,9 @@ pub struct CounterpointSolver {
     on_progress: Option<Box<dyn FnMut(CounterpointSolverProgress)>>,
     parents: Option<ParentMap>,
     start: Option<Rc<Score>>,
+    search_nodes: Option<Vec<SearchNode>>,
+    start_node_id: Option<usize>,
+    goal_node_id: Option<usize>,
 }
 
 impl CounterpointSolver {
@@ -253,6 +300,9 @@ impl CounterpointSolver {
             on_progress: None,
             parents: None,
             start: None,
+            search_nodes: None,
+            start_node_id: None,
+            goal_node_id: None,
         }
     }
 
@@ -270,6 +320,25 @@ impl CounterpointSolver {
         self.start.as_ref()
     }
 
+    /// The retained search tree, one entry per discovered node. Index `i`
+    /// corresponds to the node whose [`SearchNode::id`] is `i`.
+    #[must_use]
+    pub fn search_nodes(&self) -> Option<&[SearchNode]> {
+        self.search_nodes.as_deref()
+    }
+
+    /// The `id` of the root (initial) node of the search tree.
+    #[must_use]
+    pub fn start_node_id(&self) -> Option<usize> {
+        self.start_node_id
+    }
+
+    /// The `id` of the goal node that produced the returned solution, if any.
+    #[must_use]
+    pub fn goal_node_id(&self) -> Option<usize> {
+        self.goal_node_id
+    }
+
     pub fn run(
         &mut self,
         s: &Score,
@@ -281,7 +350,9 @@ impl CounterpointSolver {
 
         let mut open: BinaryHeap<HeapEntry> = BinaryHeap::new();
         let mut parents: ParentMap = HashMap::new();
-        let start = Node::new(
+        let mut search_nodes: Vec<SearchNode> = Vec::new();
+
+        let mut start = Node::new(
             Rc::new(s.clone()),
             self.ctx.clone(),
             0,
@@ -292,7 +363,10 @@ impl CounterpointSolver {
             0.0,
             String::new(),
         );
+        start.id = 0;
+        start.parent = None;
         let start_score = start.score.clone();
+        search_nodes.push(start.to_search_node());
         parents
             .entry(start.score_hash)
             .or_default()
@@ -304,6 +378,7 @@ impl CounterpointSolver {
         });
 
         let mut seq = 1u64;
+        let mut next_id = 1usize;
         let mut furthest = 0usize;
         let mut n_node = 0usize;
         let mut progress: usize;
@@ -317,7 +392,10 @@ impl CounterpointSolver {
 
                 if current.is_goal {
                     self.parents = Some(parents);
-                    self.start = Some(start_score);
+                    self.search_nodes = Some(search_nodes);
+                    self.start_node_id = Some(0);
+                    self.goal_node_id = Some(current.id);
+                    self.start = Some(start_score.clone());
                     return Some(current.score);
                 }
 
@@ -349,13 +427,23 @@ impl CounterpointSolver {
                             .is_none_or(|bucket| bucket.iter().all(|(s, _)| s != &n.score))
                     })
                     .collect();
-                for n in &neighbors {
+
+                let mut child_ids = Vec::with_capacity(neighbors.len());
+                for mut n in neighbors {
+                    n.id = next_id;
+                    next_id += 1;
+                    n.parent = Some(current.id);
+                    child_ids.push(n.id);
+                    search_nodes.push(n.to_search_node());
                     parents
                         .entry(n.score_hash)
                         .or_default()
                         .push((n.score.clone(), Some(current.score.clone())));
+                    new_nodes.push(n);
                 }
-                new_nodes.extend(neighbors);
+                search_nodes[current.id].n_expanded = child_ids.len();
+                search_nodes[current.id].children = child_ids;
+
                 n_node += 1;
             }
             for n in new_nodes {
@@ -366,6 +454,9 @@ impl CounterpointSolver {
         }
 
         self.parents = Some(parents);
+        self.search_nodes = Some(search_nodes);
+        self.start_node_id = Some(0);
+        self.goal_node_id = None;
         self.start = Some(start_score);
         None
     }

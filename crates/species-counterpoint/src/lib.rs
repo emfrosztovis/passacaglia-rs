@@ -34,6 +34,9 @@ pub use context::{
 };
 pub use imitation::define_imitation;
 pub use score::{Parameters, Score};
-pub use solver::{CounterpointSolver, CounterpointSolverProgress, CounterpointSolverRewardStrategy};
+pub use solver::{
+    CounterpointSolver, CounterpointSolverProgress, CounterpointSolverRewardStrategy, NodeKind,
+    SearchNode,
+};
 pub use species::{species1, species2, species3, species4, species5};
 pub use voice::{parse_notes, Measure, NonHarmonicType, Note, Voice};

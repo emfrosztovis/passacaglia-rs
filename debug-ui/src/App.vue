@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { NProgress } from 'naive-ui';
 import MusicScore from './components/MusicScore.vue';
+import SearchTree from './components/SearchTree.vue';
 import { subscribe, type ConnectionStatus, type DebugServerClient, type ServerEvent } from './debugServerClient';
 import { play, type PlayableScore } from './play';
+import { fetchNodeScore } from './treeClient';
 
 const status = ref<ConnectionStatus>('connecting');
 const source = ref('');
@@ -16,14 +18,46 @@ const progress = ref({
     total: 1,
     iteration: 0,
 });
+const focusedSource = ref<string | undefined>(undefined);
+
+const displaySource = computed(() => focusedSource.value ?? source.value);
+
+const scoreHeight = ref(320);
+let resizing = false;
+let resizeStartY = 0;
+let resizeStartH = 0;
+
+function onResizeStart(e: PointerEvent) {
+    resizing = true;
+    resizeStartY = e.clientY;
+    resizeStartH = scoreHeight.value;
+    window.addEventListener('pointermove', onResizeMove);
+    window.addEventListener('pointerup', onResizeEnd);
+}
+
+function onResizeMove(e: PointerEvent) {
+    if (!resizing) {
+        return;
+    }
+    const dy = e.clientY - resizeStartY;
+    scoreHeight.value = Math.max(120, Math.min(window.innerHeight - 240, resizeStartH + dy));
+}
+
+function onResizeEnd() {
+    resizing = false;
+    window.removeEventListener('pointermove', onResizeMove);
+    window.removeEventListener('pointerup', onResizeEnd);
+}
 
 let es: DebugServerClient | undefined;
+let focusTimer: ReturnType<typeof setTimeout> | undefined;
 
 function reset() {
     source.value = '';
     blob.value = undefined;
     noSolution.value = false;
     playable.value = undefined;
+    focusedSource.value = undefined;
     progress.value = { progress: 0, furthest: 0, total: 1, iteration: 0 };
 }
 
@@ -51,6 +85,25 @@ function onPlay() {
     }
 }
 
+function onFocusNode(id: number | null) {
+    if (focusTimer) {
+        clearTimeout(focusTimer);
+        focusTimer = undefined;
+    }
+    if (id === null) {
+        focusedSource.value = undefined;
+        return;
+    }
+    focusTimer = setTimeout(async () => {
+        try {
+            const { mxl } = await fetchNodeScore(id);
+            focusedSource.value = mxl;
+        } catch {
+            // ignore fetch failures for a transient focus
+        }
+    }, 150);
+}
+
 function onStatus(s: ConnectionStatus) {
     const wasStandby = status.value === 'standby';
     status.value = s;
@@ -65,6 +118,11 @@ onMounted(() => {
 
 onUnmounted(() => {
     es?.close();
+    if (focusTimer) {
+        clearTimeout(focusTimer);
+    }
+    window.removeEventListener('pointermove', onResizeMove);
+    window.removeEventListener('pointerup', onResizeEnd);
 });
 </script>
 
@@ -96,10 +154,15 @@ onUnmounted(() => {
         <div class="controls">
             <button v-if="playable" @click="onPlay">play</button>
             <a v-if="blob" :href="blob" download="result.xml">download</a>
+            <span v-if="focusedSource !== undefined" class="hint">showing focused node</span>
         </div>
         <div class="content">
-            <div>
-                <MusicScore v-if="source" :file="source" />
+            <div class="score-panel" :style="{ height: `${scoreHeight}px` }">
+                <MusicScore v-if="displaySource" :file="displaySource" />
+            </div>
+            <div class="resizer" @pointerdown="onResizeStart"></div>
+            <div class="tree-panel">
+                <SearchTree @focus-node="onFocusNode" />
             </div>
         </div>
     </div>
@@ -108,28 +171,50 @@ onUnmounted(() => {
 <style scoped>
     .container {
         display: flex;
+        flex-direction: column;
         width: 100%;
-        height: 100%;
+        height: 100vh;
     }
 
     .controls {
         position: absolute;
         left: 0;
         top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        gap: 0.75em;
     }
 
     .content {
         flex-grow: 1;
-        min-width: 500px;
-        height: 100%;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
 
-        & > div {
-            position: absolute;
-            left: 0;
-            top: 2em;
-            width: 100%;
-            height: 100%;
-        }
+    .score-panel {
+        min-height: 120px;
+        overflow: auto;
+        flex-shrink: 0;
+    }
+
+    .resizer {
+        height: 5px;
+        flex-shrink: 0;
+        cursor: ns-resize;
+        background: rgba(255, 255, 255, 0.1);
+        user-select: none;
+        touch-action: none;
+    }
+
+    .resizer:hover {
+        background: rgba(255, 255, 255, 0.25);
+    }
+
+    .tree-panel {
+        flex-grow: 1;
+        min-height: 120px;
     }
 
     .standby {
