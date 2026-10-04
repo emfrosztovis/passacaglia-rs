@@ -194,14 +194,14 @@ pub fn define_imitation(
     m: MelodicSettings,
     target_voice: usize,
     delay: i64,
-    transform: Rc<dyn Fn(Pitch) -> Vec<Pitch>>,
+    transform: impl Fn(Pitch) -> Vec<Pitch> + 'static,
 ) -> VoiceConstructor {
     VoiceConstructor {
         melody_settings: m,
         kind: VoiceKind::Imitation {
             target_voice,
             delay,
-            transform,
+            transform: Rc::new(transform),
         },
     }
 }

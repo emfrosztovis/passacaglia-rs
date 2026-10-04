@@ -8,6 +8,7 @@ license.workspace = true
 [dependencies]
 passacaglia-common.workspace = true
 passacaglia-core.workspace = true
+passacaglia-macros.workspace = true
 passacaglia-musicxml.workspace = true
 passacaglia-species-counterpoint.workspace = true
 axum = "0.8"

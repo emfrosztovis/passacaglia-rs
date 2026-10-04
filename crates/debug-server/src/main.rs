@@ -26,6 +26,7 @@ use axum::{
     routing::get,
 };
 use futures_util::{Stream, StreamExt, stream};
+use passacaglia_macros::std_hept_interval;
 use serde_json::json;
 use tokio::sync::broadcast;
 use tokio_stream::wrappers::BroadcastStream;
@@ -35,7 +36,7 @@ use passacaglia_core::std_hept;
 use passacaglia_core::structure::Container;
 use passacaglia_musicxml::ToMxl;
 use passacaglia_species_counterpoint::{
-    CounterpointContext, CounterpointScoreBuilder, CounterpointSolver, CounterpointSolverProgress, CounterpointSolverRewardStrategy, NonHarmonicType, Parameters, Score, rules, species1, species5,
+    CounterpointContext, CounterpointScoreBuilder, CounterpointSolver, CounterpointSolverProgress, CounterpointSolverRewardStrategy, MelodicSettings, NonHarmonicType, Parameters, Score, define_imitation, imitation, rules, species1, species3, species5,
 };
 
 /// A solver event that crosses the thread boundary. Every variant is `Send`.
@@ -169,7 +170,7 @@ async fn result_mxl(State(state): State<AppState>) -> impl IntoResponse {
 /// its jzz-based `play` helper.
 fn score_to_playable(score: &Score) -> serde_json::Value {
     let mut voices = Vec::new();
-    for voice in score.voices.iter() {
+    for voice in &score.voices {
         let mut notes = Vec::new();
         for (mi, measure) in voice.measures().iter().enumerate() {
             let measure_start = voice.start(mi);
@@ -197,7 +198,7 @@ fn score_to_playable(score: &Score) -> serde_json::Value {
 /// publishing progress and the final result over the broadcast channel.
 fn run_solver(tx: &broadcast::Sender<ServerEvent>, shared: &Arc<SharedState>) {
     let mut ctx = CounterpointContext::new(
-        8,
+        24,
         Parameters {
             measure_length: rational(4),
         },
@@ -255,9 +256,27 @@ fn run_solver(tx: &broadcast::Sender<ServerEvent>, shared: &Arc<SharedState>) {
 
     let score = CounterpointScoreBuilder::new(ctx.clone())
         .soprano(&species5())
-        .alto(&species5())
-        .tenor(&species5())
+        .alto(&define_imitation(
+            MelodicSettings {
+                forbid_repeated_notes: false,
+                max_consecutive_leaps: 30,
+                max_ignorable_3rd_leaps: 30,
+                max_unidirectional_consecutive_leaps: 30,
+                max_unidirectional_ignorable_3rd_leaps: 30
+            }, 0, 1, |x| {
+                vec![
+                    x.add(&std_hept_interval!("-P5")),
+                    x.add(&std_hept_interval!("-d5")),
+                ]
+            }))
+        // .tenor(&species1())
         .bass(&species5())
+
+        // .soprano(&species3())
+        // .alto(&species1())
+        // .tenor(&species1())
+        // .bass(&species1())
+
         .build(&std_hept::scales::c::MAJOR, None);
 
     let mut solver = CounterpointSolver::new(ctx.clone());
@@ -274,11 +293,11 @@ fn run_solver(tx: &broadcast::Sender<ServerEvent>, shared: &Arc<SharedState>) {
 
     solver.report_interval = 1000;
     solver.batch = 50;
-    solver.remove_old = 5;
+    solver.remove_old = 4;
 
     let solution = solver.a_star(
         &score,
-        CounterpointSolverRewardStrategy::Constant { value: 25.0 },
+        CounterpointSolverRewardStrategy::Constant { value: 30.0 },
     );
 
     if let Some(s) = solution {

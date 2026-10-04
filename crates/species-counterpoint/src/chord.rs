@@ -22,9 +22,9 @@ pub struct Chord {
     /// lowest to highest.
     pub tones: Rc<[Pitch]>,
     /// The position number of the chord. This is equal to the index of the
-    /// root pitch in an arrangement of the chord from the bass upwards. For
+    /// bass pitch in the root position arrangement of the chord. For
     /// example, a `position` of 0 means the root position, 1 means the first
-    /// inversion, etc.
+    /// inversion, etc. Must be less than the number of the tones.
     pub position: usize,
     /// A text label showing the quality of the chord.
     pub label: Option<String>,
@@ -40,8 +40,7 @@ impl Eq for Chord {}
 
 impl std::hash::Hash for Chord {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.bass.hash(state);
-        self.intervals.hash(state);
+        self.tones.hash(state);
         self.position.hash(state);
     }
 }
@@ -62,7 +61,11 @@ impl Chord {
 
     #[must_use]
     pub fn root(&self) -> Pitch {
-        self.tones[self.position]
+        if self.position == 0 {
+            self.tones[0]
+        } else {
+            self.tones[self.tones.len() - self.position]
+        }
     }
 
     /// Construct a chord from its tones.
@@ -82,9 +85,7 @@ impl Chord {
         Chord::new(bass, Rc::from(ints), Rc::from(tones), position)
     }
 
-    /// Construct a chord from its intervals.
-    ///
-    /// `ints` must be simple intervals and sorted from smallest to largest.
+    /// Construct a chord from the intervals between each tone.
     #[must_use]
     pub fn from_intervals_stacking(ints: &[Interval], position: usize, bass: Pitch) -> Chord {
         debug_assert!(!ints.is_empty());
@@ -158,7 +159,14 @@ impl std::fmt::Display for Chord {
             "{}",
             self.tones
                 .iter()
-                .map(Pitch::to_class_string)
+                .enumerate()
+                .map(|(i, p)| {
+                    if i == self.tones.len() - self.position {
+                        p.to_class_string() + "*"
+                    } else {
+                        p.to_class_string()
+                    }
+                })
                 .collect::<Vec<_>>()
                 .join("|")
         )

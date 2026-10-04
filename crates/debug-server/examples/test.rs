@@ -2,16 +2,17 @@ use std::{collections::HashMap, fs::{self, File}, rc::Rc};
 
 use passacaglia_common::rational;
 use passacaglia_core::std_hept;
+use passacaglia_macros::std_hept_interval;
 use passacaglia_musicxml::ToMxl;
 
-use passacaglia_species_counterpoint::NonHarmonicType;
+use passacaglia_species_counterpoint::{MelodicSettings, NonHarmonicType, define_imitation};
 #[allow(unused_imports)]
 use passacaglia_species_counterpoint::{CounterpointContext, CounterpointScoreBuilder, CounterpointSolver, CounterpointSolverRewardStrategy, Parameters, rules, species1, species2, species5};
 
 #[allow(clippy::arc_with_non_send_sync)]
 fn main() {
     let mut ctx = CounterpointContext::new(
-        4, 
+        16, 
         Parameters { measure_length: rational(4) }
     );
 
@@ -60,10 +61,26 @@ fn main() {
 
     let score = 
         CounterpointScoreBuilder::new(ctx.clone())
+
         .soprano(&species5())
-        .alto(&species5())
-        .tenor(&species5())
-        .bass(&species5())
+        .alto(&define_imitation(
+            MelodicSettings {
+                forbid_repeated_notes: false,
+                max_consecutive_leaps: 30,
+                max_ignorable_3rd_leaps: 30,
+                max_unidirectional_consecutive_leaps: 30,
+                max_unidirectional_ignorable_3rd_leaps: 30
+            }, 0, 1, |x| {
+                vec![
+                    x.add(&std_hept_interval!("-M3")),
+                    x.add(&std_hept_interval!("-m3")),
+                ]
+            }))
+
+        // .soprano(&species5())
+        // .alto(&species5())
+        // .tenor(&species5())
+        // .bass(&species5())
         .build(&std_hept::scales::c::MAJOR, None)
     ;
 
