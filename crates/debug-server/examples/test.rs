@@ -101,7 +101,7 @@ fn main() {
             .build()
             .unwrap();
 
-        let r = solver.a_star(&score, 
+        let r = solver.run(&score, 
             CounterpointSolverRewardStrategy::Constant { value: 25.0 }
         );
 

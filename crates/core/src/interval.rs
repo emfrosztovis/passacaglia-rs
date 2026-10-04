@@ -6,8 +6,7 @@ use passacaglia_common::{rational, Rational};
 
 use crate::system::PitchSystem;
 
-/// Represents a signed musical interval in a scale system: a 3-tuple
-/// (steps, distance, sign).
+/// Represents a signed musical interval in a scale system: a 3-tuple (steps, distance, sign).
 #[derive(Debug)]
 pub struct Interval<S: PitchSystem> {
     /// A nonnegative integer representing the number of steps between the two
@@ -44,6 +43,7 @@ impl<S: PitchSystem> Hash for Interval<S> {
 }
 
 impl<S: PitchSystem> Interval<S> {
+    /// Create an interval.
     #[must_use]
     pub const fn new(steps: usize, distance: Rational, sign: i8) -> Self {
         assert!(sign == 1 || sign == -1);
@@ -55,7 +55,7 @@ impl<S: PitchSystem> Interval<S> {
         }
     }
 
-    /// Same sign and same distance, ignoring steps.
+    /// True if both have the same sign and distance, ignoring steps.
     #[must_use]
     pub fn equals_enharmonically(&self, other: &Interval<S>) -> bool {
         self.sign == other.sign && self.distance == other.distance
@@ -136,6 +136,7 @@ impl<S: PitchSystem> Interval<S> {
             && other.distance >= self.distance
     }
 
+    /// Returns a copy of the interval with the given sign.
     #[must_use]
     pub fn with_sign(&self, sign: i8) -> Self {
         Interval::new(self.steps, self.distance, sign)

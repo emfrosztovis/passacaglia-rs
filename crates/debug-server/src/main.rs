@@ -201,9 +201,9 @@ fn score_to_playable(score: &Score) -> serde_json::Value {
 /// publishing progress and the final result over the broadcast channel.
 fn run_solver(tx: &broadcast::Sender<ServerEvent>, shared: &Arc<SharedState>) {
     let mut ctx = CounterpointContext::new(
-        15,
+        8,
         Parameters {
-            measure_length: rational(6),
+            measure_length: rational(4),
         },
     );
 
@@ -269,6 +269,7 @@ fn run_solver(tx: &broadcast::Sender<ServerEvent>, shared: &Arc<SharedState>) {
                 vec![
                     x.add(&interval!("-P5")),
                     x.add(&interval!("-d5")),
+                    x.add(&interval!("-A5")),
                 ]
             }))
         .bass(&species1())
@@ -280,9 +281,7 @@ fn run_solver(tx: &broadcast::Sender<ServerEvent>, shared: &Arc<SharedState>) {
     let progress_tx = tx.clone();
     let progress_shared = shared.clone();
     solver.set_reporter(move |p| {
-        *progress_shared
-            .latest_progress
-            .lock()
+        *progress_shared.latest_progress.lock()
             .expect("progress lock poisoned") = Some(p);
         let _ = progress_tx.send(ServerEvent::Progress(p));
     });
@@ -291,10 +290,8 @@ fn run_solver(tx: &broadcast::Sender<ServerEvent>, shared: &Arc<SharedState>) {
     solver.batch = 60;
     solver.remove_old = 4;
 
-    let solution = solver.a_star(
-        &score,
-        CounterpointSolverRewardStrategy::Constant { value: 40.0 },
-    );
+    let solution = solver.run(&score,
+        CounterpointSolverRewardStrategy::Constant { value: 40.0 });
 
     if let Some(s) = solution {
         let mxl = s.to_mxl();

@@ -49,6 +49,7 @@ impl<S: PitchSystem> Hash for Pitch<S> {
 }
 
 impl<S: PitchSystem> Pitch<S> {
+    /// Create a pitch.
     #[must_use]
     pub const fn new(index: usize, acci: Rational, period: i32) -> Self {
         assert!(index < S::N_DEGREES);
@@ -60,7 +61,7 @@ impl<S: PitchSystem> Pitch<S> {
         }
     }
 
-    /// Gets the ordinal number of this pitch.
+    /// Get the ordinal number of this pitch.
     #[must_use]
     pub fn ord(&self) -> Rational {
         self.acci

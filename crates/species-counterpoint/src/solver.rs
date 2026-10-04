@@ -270,7 +270,7 @@ impl CounterpointSolver {
         self.start.as_ref()
     }
 
-    pub fn a_star(
+    pub fn run(
         &mut self,
         s: &Score,
         strategy: CounterpointSolverRewardStrategy,

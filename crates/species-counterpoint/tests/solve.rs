@@ -75,7 +75,7 @@ fn solve(ctx: Rc<CounterpointContext>, score: &Score) -> bool {
     solver.remove_old = 5;
     solver.report_interval = 100_000;
     solver
-        .a_star(score, CounterpointSolverRewardStrategy::Constant { value: 25.0 })
+        .run(score, CounterpointSolverRewardStrategy::Constant { value: 25.0 })
         .is_some()
 }
 

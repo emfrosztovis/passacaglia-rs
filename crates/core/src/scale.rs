@@ -14,7 +14,7 @@ pub struct DegreeDefinition<S: PitchSystem> {
     /// The standard pitch class of this degree.
     pub pitch: Pitch<S>,
     /// Permitted alterations on the degree, represented by accidental offsets. 
-    /// The standard pitch (offset `0`) is always available and need not be listed here.
+    /// The standard pitch (offset 0) is always available and need not be listed here.
     pub alterations: Vec<Rational>,
 }
 
@@ -43,9 +43,8 @@ impl<S: PitchSystem> Hash for DegreeDefinition<S> {
 }
 
 /// Represents a scale in a pitch system, starting from a given pitch class (the
-/// root) and consisting of several degrees. Notably, we allow enharmonically
-/// equal tones in the scale. This is to accomodate spelling alternatives (as in
-/// the chromatic scale).
+/// root) and consisting of several degrees. Each degree can allow a number of altered
+/// tones to base on it.
 #[derive(Debug, Clone)]
 pub struct Scale<S: PitchSystem> {
     /// List of degrees. Always non-decreasing and spans less than the system's
@@ -146,6 +145,7 @@ impl<S: PitchSystem> Scale<S> {
         Scale::new(degrees.to_vec(), intervals)
     }
 
+    /// Get the definition of the root degree.
     #[must_use]
     pub fn root(&self) -> DegreeDefinition<S> {
         self.degrees[0].clone()
@@ -157,6 +157,7 @@ impl<S: PitchSystem> Scale<S> {
         Degree::new(self, i, Rational::ZERO, 0)
     }
 
+    /// Match a pitch to a degree in the scale. Returns `None` if no allowed tone matches the pitch.
     #[must_use]
     pub fn get_degree(&self, p: &Pitch<S>) -> Option<Degree<'_, S>> {
         for (i, deg) in self.degrees.iter().enumerate() {
@@ -170,6 +171,8 @@ impl<S: PitchSystem> Scale<S> {
         None
     }
 
+    /// Returns all possible (allowed) degrees within a period. This includes all standard degrees 
+    /// and all alterations of them.
     #[must_use]
     pub fn all_degrees(&self) -> Vec<Degree<'_, S>> {
         let mut result = Vec::new();
@@ -182,6 +185,8 @@ impl<S: PitchSystem> Scale<S> {
         result
     }
 
+    /// Returns all possible (allowed) degrees within a given pitch range. This includes all 
+    /// standard degrees and all alterations of them.
     #[must_use]
     pub fn get_degrees_in_range(&self, l: &Pitch<S>, h: &Pitch<S>) -> Vec<Degree<'_, S>> {
         let mut result = Vec::new();
@@ -217,8 +222,7 @@ impl<S: PitchSystem> Scale<S> {
         result
     }
 
-    /// Rotate the scale. Positive `n` shifts left; the intervals rotate, and the
-    /// root moves only when `move_root` is set.
+    /// Rotate the scale. Positive `n` shifts left. The result is transposed back so that the root pitch remains the same, *unless* `move_root` is set to `false`.
     #[must_use]
     pub fn rotate(&self, n: i64, move_root: bool) -> Scale<S> {
         let new_intervals = rotate_array(&self.intervals, n);
@@ -231,7 +235,7 @@ impl<S: PitchSystem> Scale<S> {
         }
     }
 
-    /// Transpose the scale by an interval. The intervals themselves do not change.
+    /// Transpose the scale by an interval.
     #[must_use]
     pub fn transpose(&self, int: &Interval<S>) -> Scale<S> {
         let mut int = *int;

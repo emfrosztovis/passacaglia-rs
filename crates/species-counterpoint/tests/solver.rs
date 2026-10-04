@@ -22,6 +22,6 @@ fn empty_score_is_immediately_goal() {
     let score = builder.build(&scales::c::MAJOR, None);
 
     let mut solver = CounterpointSolver::new(ctx);
-    let result = solver.a_star(&score, CounterpointSolverRewardStrategy::Constant { value: 1.0 });
+    let result = solver.run(&score, CounterpointSolverRewardStrategy::Constant { value: 1.0 });
     assert!(result.is_some());
 }
