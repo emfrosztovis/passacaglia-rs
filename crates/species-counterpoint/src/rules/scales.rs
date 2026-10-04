@@ -6,7 +6,7 @@ use passacaglia_core::std_hept::{Interval, Pitch};
 use passacaglia_macros::std_hept_interval as interval;
 
 use crate::context::{CandidateRule, Candidates};
-use crate::rules::utils::{note_pitch, prev_different, sign_of};
+use crate::rules::utils::{note_pitch, sign_of};
 use crate::voice::NonHarmonicType;
 
 pub use crate::context::parse_preferred;
@@ -118,6 +118,8 @@ pub fn enforce_directional_degree_matrix(m: DegreeMatrix) -> CandidateRule {
     })
 }
 
+/// Operates on the `COMPLETE_MINOR`, which is just a clumsy workaround before we decide how to 
+/// implement scales with alternate tones)
 #[must_use]
 pub fn enforce_minor(root: Pitch) -> CandidateRule {
     Rc::new(move |_ctx, _s, cur, c, ty| {
@@ -140,31 +142,58 @@ pub fn enforce_minor(root: Pitch) -> CandidateRule {
             return c;
         }
 
-        if let Some((n1, p1)) = note_pitch(cur.prev_global())
+        // Schoenberg's four Wendepunktgesetze listed in _Theory of Harmony_, Chapter 5
+        // 
+        // ```text
+        //  0  1  2  3  4  5  6  7  8
+        //  C  D Ef  F  G Af  A Bf  B
+        //  A  B  C  D  E  F Fs  G Gs
+        // ```
+        if let Some((_n1, p1)) = note_pitch(cur.prev_global())
             && let Some(d1) = scale.get_exact_degree(&p1, false)
-            && let Some((_, p0)) = note_pitch(prev_different(n1))
-            && scale.get_exact_degree(&p0, false).is_some()
+            // && let Some((_, p0)) = note_pitch(prev_different(n1))
+            // && scale.get_exact_degree(&p0, false).is_some()
         {
-            if d1.index == 6 {
-                if p0.interval_to(&p1) != interval!("M2") {
-                    return Candidates::new();
-                }
-                let target = p1.add(&interval!("M2"));
-                c.filter(|x, _| *x == target);
-                return c;
-            }
-            if d1.index == 7 {
-                if p0.interval_to(&p1) != interval!("-M2") {
-                    return Candidates::new();
-                }
-                let target = p1.add(&interval!("-M2"));
-                c.filter(|x, _| *x == target);
-                return c;
-            }
+            // Gs must go to A
             if d1.index == 8 {
                 let target = p1.add(&interval!("m2"));
                 c.filter(|x, _| *x == target);
             }
+
+            // Fs must go to Gs
+            if d1.index == 6 {
+                let target = p1.add(&interval!("M2"));
+                c.filter(|x, _| *x == target);
+            }
+
+            // G must go to F
+            if d1.index == 7 {
+                let target = p1.add(&interval!("-M2"));
+                c.filter(|x, _| *x == target);
+            }
+
+            // F must go to E
+            if d1.index == 7 {
+                let target = p1.add(&interval!("-m2"));
+                c.filter(|x, _| *x == target);
+            }
+
+            // if d1.index == 6 {
+            //     if p0.interval_to(&p1) != interval!("M2") {
+            //         return Candidates::new();
+            //     }
+            //     let target = p1.add(&interval!("M2"));
+            //     c.filter(|x, _| *x == target);
+            //     return c;
+            // }
+            // if d1.index == 7 {
+            //     if p0.interval_to(&p1) != interval!("-M2") {
+            //         return Candidates::new();
+            //     }
+            //     let target = p1.add(&interval!("-M2"));
+            //     c.filter(|x, _| *x == target);
+            //     return c;
+            // }
         }
         c
     })

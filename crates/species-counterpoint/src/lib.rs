@@ -1,18 +1,7 @@
 //! Species counterpoint: domain model, rules, and a best-first search solver.
 //!
-//! This crate mirrors the TypeScript `species-counterpoint` package: it keeps
-//! the `Score`/`Measure`/`Note`/`Voice` domain model local (standard-heptatonic
-//! specific) and layers the rule registry and solver on top.
-//!
-//! Like the source it ports, the solver is single-threaded and its rule
-//! closures capture plain owned data. The `Rc`s shared across measures/voices
-//! are therefore not `Send`/`Sync`; the `too_many_arguments`,
-//! `type_complexity`, `too_many_lines`, and `similar_names` allowances mirror
-//! the source's construction signatures, higher-ranked cursor types, and
-//! verbatim rule bodies.
 #![warn(clippy::pedantic)]
 #![allow(
-    clippy::arc_with_non_send_sync,
     clippy::cast_possible_truncation,
     clippy::cast_possible_wrap,
     clippy::cast_precision_loss,

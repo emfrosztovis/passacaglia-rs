@@ -14,7 +14,7 @@ use crate::imitation::ImitationMeasure;
 use crate::score::Score;
 use crate::species::{FakeMeasure, MeasureSchema, NoteSchema, SpeciesMeasure};
 
-/// The kind of non-harmonic tone attached to a note.
+/// The kind of non-harmonic tone that a note can be.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NonHarmonicType {
     PassingTone,

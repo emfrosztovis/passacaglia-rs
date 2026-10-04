@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use passacaglia_common::rational;
+use passacaglia_common::{rational, rational_value};
 use passacaglia_core::std_hept::Interval;
 
 use crate::context::{CandidateRule, Candidates};
@@ -16,7 +16,7 @@ pub fn enforce_melody_intervals() -> CandidateRule {
         if ty == Some(NonHarmonicType::Suspension) {
             return c;
         }
-        if let Some(prev) = nth_prev_pitch(cur, 1) {
+        if let Some((pc, prev)) = note_pitch(cur.prev_global()) {
             let prev2 = nth_prev_pitch(cur, 2);
             let v = cur.parent().container();
             let mut ints: Vec<(Interval, f64)> = ctx.melodic_intervals.iter().map(|(i, c)| (*i, *c)).collect();
@@ -31,7 +31,10 @@ pub fn enforce_melody_intervals() -> CandidateRule {
             };
             let nexts = Candidates::from_pairs(
                 ints.iter()
-                    .map(|(x, cost)| (prev.add(&x.with_sign(x.sign * sign)), *cost)),
+                    .map(|(x, cost)| (
+                        prev.add(&x.with_sign(x.sign * sign)), 
+                        *cost / rational_value(pc.duration).sqrt()
+                    )),
             );
             c.intersect_with(&nexts, |a, b| a + b);
         }

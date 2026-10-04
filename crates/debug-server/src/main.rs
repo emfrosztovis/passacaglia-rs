@@ -1,6 +1,6 @@
 //! Local HTTP/SSE server for the `debug-ui`: runs the species-counterpoint
 //! solver on a dedicated thread (the solver and its rule closures are `Rc`-based
-//! and not `Send`/`Sync`) and streams progress + the final MusicXML to a browser
+//! and not `Send`/`Sync`) and streams progress + the final `MusicXML` to a browser
 //! over Server-Sent Events.
 //!
 //! Endpoints:
@@ -26,15 +26,18 @@ use axum::{
     routing::get,
 };
 use futures_util::{Stream, StreamExt, stream};
-use passacaglia_macros::std_hept_interval;
+#[allow(unused_imports)]
+use passacaglia_macros::{std_hept_interval as interval, std_hept_pitch as pitch};
 use serde_json::json;
 use tokio::sync::broadcast;
 use tokio_stream::wrappers::BroadcastStream;
 
 use passacaglia_common::{rational, rational_value};
-use passacaglia_core::std_hept;
+use passacaglia_core::std_hept::{scales};
 use passacaglia_core::structure::Container;
 use passacaglia_musicxml::ToMxl;
+
+#[allow(unused_imports)]
 use passacaglia_species_counterpoint::{
     CounterpointContext, CounterpointScoreBuilder, CounterpointSolver, CounterpointSolverProgress, CounterpointSolverRewardStrategy, MelodicSettings, NonHarmonicType, Parameters, Score, define_imitation, imitation, rules, species1, species3, species5,
 };
@@ -144,7 +147,7 @@ async fn events(
     Sse::new(stream::iter(snapshot).chain(live))
 }
 
-/// Serve the final MusicXML document, or 404 while the solver is still running
+/// Serve the final `MusicXML` document, or 404 while the solver is still running
 /// (or if it found no solution).
 async fn result_mxl(State(state): State<AppState>) -> impl IntoResponse {
     let mxl = match &*state.shared.status.lock().expect("status lock poisoned") {
@@ -198,14 +201,14 @@ fn score_to_playable(score: &Score) -> serde_json::Value {
 /// publishing progress and the final result over the broadcast channel.
 fn run_solver(tx: &broadcast::Sender<ServerEvent>, shared: &Arc<SharedState>) {
     let mut ctx = CounterpointContext::new(
-        24,
+        16,
         Parameters {
             measure_length: rational(4),
         },
     );
 
     ctx.harmony_rules = vec![
-        rules::enforce_functional_progression_major(),
+        // rules::enforce_functional_progression_major(),
         rules::enforce_valid_chords(),
     ];
 
@@ -219,6 +222,7 @@ fn run_solver(tx: &broadcast::Sender<ServerEvent>, shared: &Arc<SharedState>) {
 
     ctx.candidate_rules_before = vec![
         rules::enforce_scale_tones(),
+        rules::enforce_minor(pitch!("a")),
         rules::enforce_stepwise_around_short_notes(),
         rules::enforce_passing_tones(),
         rules::enforce_neighbor_tones(),
@@ -255,29 +259,31 @@ fn run_solver(tx: &broadcast::Sender<ServerEvent>, shared: &Arc<SharedState>) {
     let ctx = Rc::new(ctx);
 
     let score = CounterpointScoreBuilder::new(ctx.clone())
-        .soprano(&species5())
-        .alto(&define_imitation(
-            MelodicSettings {
-                forbid_repeated_notes: false,
-                max_consecutive_leaps: 30,
-                max_ignorable_3rd_leaps: 30,
-                max_unidirectional_consecutive_leaps: 30,
-                max_unidirectional_ignorable_3rd_leaps: 30
-            }, 0, 1, |x| {
-                vec![
-                    x.add(&std_hept_interval!("-P5")),
-                    x.add(&std_hept_interval!("-d5")),
-                ]
-            }))
-        // .tenor(&species1())
-        .bass(&species5())
-
-        // .soprano(&species3())
-        // .alto(&species1())
-        // .tenor(&species1())
+        // .soprano(&species5())
+        // .alto(&define_imitation(
+        //     MelodicSettings {
+        //         forbid_repeated_notes: false,
+        //         max_consecutive_leaps: 30,
+        //         max_ignorable_3rd_leaps: 30,
+        //         max_unidirectional_consecutive_leaps: 30,
+        //         max_unidirectional_ignorable_3rd_leaps: 30
+        //     }, 0, 1, |x| {
+        //         vec![
+        //             x.add(&interval!("-P5")),
+        //             x.add(&interval!("-d5")),
+        //         ]
+        //     }))
+        // // .tenor(&species1())
         // .bass(&species1())
 
-        .build(&std_hept::scales::c::MAJOR, None);
+        .soprano(&species5())
+        .alto(&species5())
+        .tenor(&species5())
+        .bass(&species1())
+
+        // .build(&scales::c::MAJOR, None)
+        .build(&scales::c::COMPLETE_MINOR.transpose_to(&pitch!("a")), None)
+    ;
 
     let mut solver = CounterpointSolver::new(ctx.clone());
 
@@ -292,12 +298,12 @@ fn run_solver(tx: &broadcast::Sender<ServerEvent>, shared: &Arc<SharedState>) {
     });
 
     solver.report_interval = 1000;
-    solver.batch = 50;
+    solver.batch = 40;
     solver.remove_old = 4;
 
     let solution = solver.a_star(
         &score,
-        CounterpointSolverRewardStrategy::Constant { value: 30.0 },
+        CounterpointSolverRewardStrategy::Constant { value: 35.0 },
     );
 
     if let Some(s) = solution {
