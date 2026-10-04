@@ -4,7 +4,7 @@ use passacaglia_common::{rational, rational_value};
 use passacaglia_core::std_hept::Interval;
 
 use crate::context::{CandidateRule, Candidates};
-use crate::rules::utils::{note_pitch, nth_prev_pitch};
+use crate::rules::utils::{note_pitch, nth_prev_pitch, prev_non_tied};
 use crate::voice::NonHarmonicType;
 
 /// Only allow melodic intervals specified in [`crate::context::CounterpointContext`] in the
@@ -66,6 +66,34 @@ pub fn avoid_repeat2() -> CandidateRule {
             && prev3 == prev
         {
             c.filter(|x, _| *x != prev2);
+        }
+        c
+    })
+}
+#[must_use]
+pub fn avoid_stagnation() -> CandidateRule {
+    Rc::new(move |_ctx, _s, cur, c, _ty| {
+        let c = c.expect("candidates initialized");
+        let Some((mut cur, p)) = note_pitch(cur.prev_global()) else {
+            return c;
+        };
+        let mut lo = p;
+        let mut hi = p;
+        for i in 2..=14 {
+            let Some((cur1, p1)) = note_pitch(prev_non_tied(cur)) else {
+                return c;
+            };
+            if p1.ord() < lo.ord() { lo = p1; }
+            if p1.ord() > hi.ord() { hi = p1; }
+            cur = cur1;
+        
+            let int = lo.interval_to(&hi);
+            if i == 5 && int.steps <= 1
+                || i == 9 && int.steps <= 2
+                || i == 14 && int.steps <= 3
+            {
+                return Candidates::new();
+            }
         }
         c
     })

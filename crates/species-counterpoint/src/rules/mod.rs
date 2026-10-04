@@ -17,7 +17,7 @@ mod root_progression;
 
 pub use voice_motion::prioritize_voice_motion;
 pub use voice_overlapping::forbid_voice_overlapping2;
-pub use melody::{avoid_repeat2, enforce_melody_intervals, enforce_stepwise_around_short_notes};
+pub use melody::{avoid_repeat2, enforce_melody_intervals, enforce_stepwise_around_short_notes, avoid_stagnation};
 pub use leaps::{enforce_leap_preparation, enforce_leap_resolution, limit_consecutive_leaps};
 pub use scales::{
     degree_matrix_preset_major, enforce_directional_degree_matrix, enforce_minor,

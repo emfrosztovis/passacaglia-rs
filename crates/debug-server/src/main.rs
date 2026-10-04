@@ -201,7 +201,7 @@ fn score_to_playable(score: &Score) -> serde_json::Value {
 /// publishing progress and the final result over the broadcast channel.
 fn run_solver(tx: &broadcast::Sender<ServerEvent>, shared: &Arc<SharedState>) {
     let mut ctx = CounterpointContext::new(
-        8,
+        12,
         Parameters {
             measure_length: rational(4),
         },
@@ -230,6 +230,7 @@ fn run_solver(tx: &broadcast::Sender<ServerEvent>, shared: &Arc<SharedState>) {
         rules::enforce_suspension(),
         rules::forbid_voice_overlapping2(),
         rules::avoid_repeat2(),
+        rules::avoid_stagnation(),
     ];
 
     ctx.candidate_rules_after = vec![
@@ -262,17 +263,24 @@ fn run_solver(tx: &broadcast::Sender<ServerEvent>, shared: &Arc<SharedState>) {
     let ctx = Rc::new(ctx);
 
     let score = CounterpointScoreBuilder::new(ctx.clone())
+        // .soprano(&species5())
+        // .alto(&define_imitation(
+        //     MelodicSettings::unrestricted(),
+        //     0, 1, |x| {
+        //         vec![
+        //             x.add(&interval!("-d5")),
+        //             x.add(&interval!("-P5")),
+        //             x.add(&interval!("-A5")),
+        //         ]
+        //     }))
+        // .bass(&species5())
+
         .soprano(&species5())
-        .alto(&define_imitation(
-            MelodicSettings::unrestricted(),
-            0, 1, |x| {
-                vec![
-                    x.add(&interval!("-P5")),
-                    x.add(&interval!("-d5")),
-                    x.add(&interval!("-A5")),
-                ]
-            }))
-        .bass(&species1())
+        .alto(&species5())
+        // .tenor(&species1())
+        .bass(&species5())
+
+        // .build(&scales::major(pitch!("c")), None)
         .build(&scales::minor(pitch!("a")), None)
     ;
 
@@ -287,11 +295,11 @@ fn run_solver(tx: &broadcast::Sender<ServerEvent>, shared: &Arc<SharedState>) {
     });
 
     solver.report_interval = 1000;
-    solver.batch = 60;
-    solver.remove_old = 4;
+    solver.batch = 100;
+    solver.remove_old = 6;
 
     let solution = solver.run(&score,
-        CounterpointSolverRewardStrategy::Constant { value: 40.0 });
+        CounterpointSolverRewardStrategy::Constant { value: 30.0 });
 
     if let Some(s) = solution {
         let mxl = s.to_mxl();

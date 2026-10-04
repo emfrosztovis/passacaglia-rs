@@ -83,6 +83,18 @@ pub fn is_leading_tone(p: &Pitch, s: &Scale) -> bool {
             && deg.to_pitch().absolute_simple_interval_to(&s.root().pitch) == interval!("m2"))
 }
 
+
+#[must_use]
+pub fn prev_non_tied(mut c: NoteCursor<'_>) -> Option<NoteCursor<'_>> {
+    loop {
+        let n = c.prev_global()?;
+        if !n.is_tied() {
+            return Some(n);
+        }
+        c = n;
+    }
+}
+
 #[must_use]
 pub fn prev_different(mut c: NoteCursor<'_>) -> Option<NoteCursor<'_>> {
     let target = c.pitch.expect("pitch present");
