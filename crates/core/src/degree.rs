@@ -37,13 +37,19 @@ impl<'a, S: PitchSystem> Degree<'a, S> {
     }
 
     #[must_use]
-    pub fn with_period(&self, p: i32) -> Self {
-        Degree::new(self.scale, self.index, self.acci, p)
+    pub fn with_acci(&self, acci: Rational) -> Self {
+        Degree::new(self.scale, self.index, acci, self.period)
+    }
+
+    #[must_use]
+    pub fn with_period(&self, period: i32) -> Self {
+        Degree::new(self.scale, self.index, self.acci, period)
     }
 
     #[must_use]
     pub fn to_pitch(&self) -> Pitch<S> {
         self.scale.degrees[self.index]
+            .pitch
             .add_accidental(self.acci)
             .add_period(self.period)
     }

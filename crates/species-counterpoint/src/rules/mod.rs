@@ -30,5 +30,5 @@ pub use passing_tone::{enforce_passing_tones, make_passing_tone};
 pub use neighbor_tone::{enforce_neighbor_tones, make_neighbor_tone};
 pub use suspension::{enforce_suspension, make_suspension};
 pub use valid_chords::{enforce_chord_tone, enforce_fixed_progression, enforce_valid_chords};
-pub use functional_harmony::enforce_functional_progression_major;
+pub use functional_harmony::{enforce_functional_progression_major, enforce_functional_progression_minor};
 pub use root_progression::enforce_root_progression;

@@ -74,7 +74,7 @@ impl Chord {
     #[must_use]
     pub fn from_pitches(ps: &[Pitch], position: usize) -> Chord {
         debug_assert!(!ps.is_empty());
-        let bass = ps[0];
+        let bass = ps[0].with_period(0);
         let mut ints = Vec::new();
         let mut tones = vec![bass];
         for p in &ps[1..] {

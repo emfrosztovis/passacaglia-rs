@@ -4,20 +4,20 @@ use passacaglia_core::std_hept::{scales, Interval, Pitch, Scale, PITCH_CLASSES};
 #[test]
 fn simple_well_known_scales() {
     let s = scales::major(PITCH_CLASSES.b);
-    assert_eq!(s.at(2, rational(0)).to_pitch().to_string(), "ds1");
+    assert_eq!(s.at(2).to_pitch().to_string(), "ds1");
 
-    let s = scales::harmonic_minor(PITCH_CLASSES.c);
-    assert_eq!(s.at(2, rational(0)).to_pitch().to_string(), "ef0");
+    let s = scales::minor(PITCH_CLASSES.c);
+    assert_eq!(s.at(2).to_pitch().to_string(), "ef0");
 
     let s = scales::major(PITCH_CLASSES.e);
     assert_eq!(
-        s.at(2, rational(0)).with_period(4).to_pitch().to_string(),
+        s.at(2).with_period(4).to_pitch().to_string(),
         "gs4"
     );
 
-    let s = scales::harmonic_minor(PITCH_CLASSES.e);
+    let s = scales::minor(PITCH_CLASSES.e);
     assert_eq!(
-        s.at(2, rational(0)).with_period(4).to_pitch().to_string(),
+        s.at(2).with_period(4).to_pitch().to_string(),
         "g4"
     );
 }
@@ -49,19 +49,19 @@ fn parse_degree_fail() {
 
 #[test]
 fn degree_to_string() {
-    assert_eq!(scales::c::MAJOR.at(5, rational(0)).to_string(), "vi");
+    assert_eq!(scales::c::MAJOR.at(5).to_string(), "vi");
     assert_eq!(
-        scales::c::MAJOR.at(5, rational(0)).to_arabic_string(),
+        scales::c::MAJOR.at(5).to_arabic_string(),
         "[6]"
     );
 
     assert_eq!(
-        scales::c::MAJOR.at(4, Rational::new(-3, 2)).to_string(),
+        scales::c::MAJOR.at(4).with_acci(Rational::new(-3, 2)).to_string(),
         "v3/2f"
     );
     assert_eq!(
         scales::c::MAJOR
-            .at(5, Rational::new(-3, 2))
+            .at(5).with_acci(Rational::new(-3, 2))
             .to_arabic_string(),
         "[6]3/2f"
     );
@@ -78,7 +78,7 @@ fn equality() {
     );
     assert_eq!(*scales::c::MAJOR, built);
 
-    assert!(scales::major(PITCH_CLASSES.d).interval_equals(&scales::major(PITCH_CLASSES.b)));
+    assert!(scales::major(PITCH_CLASSES.d).shape_equals(&scales::major(PITCH_CLASSES.b)));
 }
 
 #[test]
@@ -98,31 +98,40 @@ fn get_degrees_in_range() {
         .map(|d| d.to_pitch().to_string())
         .collect();
     assert_eq!(got, vec!["cs4", "ds4", "e4", "fs4"]);
+
+    let s2 = scales::minor(Pitch::parse("a").unwrap());
+    let got: Vec<String> = s2
+        .get_degrees_in_range(&Pitch::parse("e3").unwrap(), &Pitch::parse("a3").unwrap())
+        .iter()
+        .map(|d| d.to_pitch().to_string())
+        .collect();
+    assert_eq!(got, vec!["e3", "f3", "fs3", "g3", "gs3", "a3"]);
 }
 
 #[test]
-fn get_exact_degree() {
+fn get_degree() {
     assert!(scales::major(PITCH_CLASSES.c)
-        .get_exact_degree(&Pitch::parse("es").unwrap(), false)
+        .get_degree(&Pitch::parse("es").unwrap())
         .is_none());
     assert_eq!(
-        scales::major(PITCH_CLASSES.c)
-            .get_exact_degree(&Pitch::parse("es").unwrap(), true)
-            .unwrap()
-            .to_string(),
-        "iv"
-    );
-    assert_eq!(
-        scales::harmonic_minor(PITCH_CLASSES.c)
-            .get_exact_degree(&Pitch::parse("ef").unwrap(), false)
+        scales::minor(PITCH_CLASSES.c)
+            .get_degree(&Pitch::parse("ef").unwrap())
             .unwrap()
             .to_string(),
         "iii"
+    );
+    assert_eq!(
+        scales::minor(PITCH_CLASSES.a)
+            .get_degree(&Pitch::parse("fs").unwrap())
+            .unwrap()
+            .to_string(),
+        "vis"
     );
 }
 
 #[test]
 fn rotate() {
+    // FIXME: circular
     assert_eq!(
         scales::c::MAJOR.rotate(2, false),
         scales::phrygian(PITCH_CLASSES.c)
@@ -148,14 +157,14 @@ fn transpose() {
 #[test]
 fn degree_next_previous() {
     let s = scales::major(Pitch::parse("b").unwrap());
-    assert_eq!(s.at(0, rational(0)).next().to_pitch().to_string(), "cs1");
-    assert_eq!(s.at(6, rational(0)).next().to_pitch().to_string(), "b1");
+    assert_eq!(s.at(0).next().to_pitch().to_string(), "cs1");
+    assert_eq!(s.at(6).next().to_pitch().to_string(), "b1");
     assert_eq!(
-        s.at(0, rational(0)).previous().to_pitch().to_string(),
+        s.at(0).previous().to_pitch().to_string(),
         "as0"
     );
     assert_eq!(
-        s.at(6, rational(0)).previous().to_pitch().to_string(),
+        s.at(6).previous().to_pitch().to_string(),
         "gs1"
     );
 }

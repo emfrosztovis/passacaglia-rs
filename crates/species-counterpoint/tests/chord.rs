@@ -18,12 +18,12 @@ fn chord_positions() {
     let first = maj.to_position(1);
     assert_eq!(first.position, 1);
     assert_eq!(first.bass, pitch!("e"));
-    assert_eq!(first.root(), pitch!("c"));
+    assert_eq!(first.root().with_period(0), pitch!("c"));
 
     let second = maj.to_position(2);
     assert_eq!(second.position, 2);
     assert_eq!(second.bass, pitch!("g"));
-    assert_eq!(second.root(), pitch!("c"));
+    assert_eq!(second.root().with_period(0), pitch!("c"));
 
     assert_eq!(maj.to_position(0), maj);
 }

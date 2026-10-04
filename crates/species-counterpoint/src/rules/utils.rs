@@ -1,5 +1,6 @@
 use passacaglia_common::{rational, Rational};
 use passacaglia_core::std_hept::{Interval, Pitch, Scale};
+use passacaglia_macros::std_hept_interval as interval;
 
 use crate::voice::NoteCursor;
 
@@ -77,8 +78,9 @@ pub fn is_consonance(i: &Interval, with_bass: bool) -> bool {
 
 #[must_use]
 pub fn is_leading_tone(p: &Pitch, s: &Scale) -> bool {
-    s.get_exact_degree(p, false)
-        .is_some_and(|deg| deg.index == s.degrees.len() - 1)
+    s.get_degree(p)
+        .is_some_and(|deg| deg.index == s.degrees.len() - 1
+            && deg.to_pitch().absolute_simple_interval_to(&s.root().pitch) == interval!("m2"))
 }
 
 #[must_use]

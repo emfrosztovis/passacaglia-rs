@@ -33,7 +33,7 @@ pub mod std_hept;
 pub use degree::Degree;
 pub use interval::Interval;
 pub use pitch::Pitch;
-pub use scale::Scale;
+pub use scale::{DegreeDefinition, Scale};
 pub use system::{PitchSystem, ET12};
 pub use tuning::{EqualTemperament, Tuning};
 

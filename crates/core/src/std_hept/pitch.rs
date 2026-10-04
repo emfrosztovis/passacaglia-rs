@@ -43,11 +43,11 @@ impl Pitch<StdHeptatonic> {
         Self::from_str(s).ok()
     }
 
-    /// Returns the positive simple interval between two pitches.
+    /// Returns the positive simple interval between two pitches. For example, it returns m2 for c0 and b0.
     #[must_use]
     pub fn absolute_simple_interval_to(&self, b: &Self) -> Interval<StdHeptatonic> {
         let a = self.with_period(0);
-        let b = b.with_period(0);
+        let b = b.with_period(i32::from(a.index > b.index));
         a.interval_to(&b).abs()
     }
 

@@ -33,7 +33,7 @@ pub fn enforce_melody_intervals() -> CandidateRule {
                 ints.iter()
                     .map(|(x, cost)| (
                         prev.add(&x.with_sign(x.sign * sign)), 
-                        *cost / rational_value(pc.duration).sqrt()
+                        *cost / rational_value(pc.duration)
                     )),
             );
             c.intersect_with(&nexts, |a, b| a + b);

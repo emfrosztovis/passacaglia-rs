@@ -1,61 +1,15 @@
 use std::fmt;
 
-use passacaglia_common::rational;
-
 use crate::degree::Degree;
-use crate::interval::Interval;
-use crate::pitch::Pitch;
 use crate::scale::Scale;
 use crate::std_hept::accidental;
 use crate::std_hept::parse;
 use crate::std_hept::system::StdHeptatonic;
-use crate::system::PitchSystem;
 
+// FIXME: we assume indices don't go up over 10
 const ROMAN_NUMERALS: [&str; 10] = ["i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x"];
 
 impl Scale<StdHeptatonic> {
-    /// Build a scale from a root and its intervals (the last wraps back to the root).
-    #[must_use]
-    pub fn from_intervals(
-        root: Pitch<StdHeptatonic>,
-        intervals: &[Interval<StdHeptatonic>],
-    ) -> Self {
-        let mut degrees = vec![root];
-        let mut current = root;
-        for (i, int) in intervals.iter().enumerate() {
-            debug_assert_eq!(int.sign, 1);
-            current = current.add(int);
-            if i == intervals.len() - 1 {
-                debug_assert_eq!(
-                    root.distance_to(&current),
-                    rational(StdHeptatonic::N_PITCH_CLASSES as i64)
-                );
-            } else {
-                degrees.push(current);
-            }
-        }
-        Scale::new(degrees, intervals.to_vec())
-    }
-
-    /// Build a scale from its degrees (the wrap interval is inferred).
-    #[must_use]
-    pub fn from_pitches(degrees: &[Pitch<StdHeptatonic>]) -> Self {
-        let mut intervals = Vec::with_capacity(degrees.len());
-        for i in 1..degrees.len() {
-            let int = degrees[i - 1].interval_to(&degrees[i]);
-            debug_assert!(int.sign > 0);
-            intervals.push(int);
-        }
-        let wrap = degrees
-            .last()
-            .expect("non-empty degrees")
-            .interval_to(&degrees[0].add_period(1));
-        debug_assert!(wrap.sign > 0);
-        debug_assert!(wrap.distance < rational(StdHeptatonic::N_PITCH_CLASSES as i64));
-        intervals.push(wrap);
-        Scale::new(degrees.to_vec(), intervals)
-    }
-
     /// Parse a scale-degree expression (roman numeral or `[n]`, plus accidental).
     #[must_use]
     pub fn parse_degree(&self, ex: &str) -> Option<Degree<'_, StdHeptatonic>> {
@@ -85,7 +39,7 @@ impl Scale<StdHeptatonic> {
         };
 
         let acci = parse::parse_accidental(rest).ok()?;
-        Some(self.at(idx, acci))
+        Some(self.at(idx).with_acci(acci))
     }
 }
 
@@ -101,7 +55,6 @@ impl fmt::Display for Degree<'_, StdHeptatonic> {
 }
 
 impl Degree<'_, StdHeptatonic> {
-    /// The `preferArabic` form (`[n]` instead of roman numerals).
     #[must_use]
     pub fn to_arabic_string(&self) -> String {
         format!("[{}]{}", self.index + 1, accidental::print(self.acci))

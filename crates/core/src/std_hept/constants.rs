@@ -1,12 +1,13 @@
 use std::sync::LazyLock;
 
-use passacaglia_common::rational;
+use passacaglia_common::{Rational, rational};
 
-use crate::std_hept::system::StdHeptatonic;
+use crate::{std_hept::system::StdHeptatonic};
 
 type Pitch = crate::pitch::Pitch<StdHeptatonic>;
 type Interval = crate::interval::Interval<StdHeptatonic>;
 type Scale = crate::scale::Scale<StdHeptatonic>;
+type DegreeDefinition = crate::scale::DegreeDefinition<StdHeptatonic>;
 
 /// The natural pitch classes (period 0).
 pub struct PitchClasses {
@@ -36,10 +37,13 @@ fn parse_ints(abbrs: &[&str]) -> Vec<Interval> {
         .collect()
 }
 
-fn parse_pitches(abbrs: &[&str]) -> Vec<Pitch> {
+fn parse_degree_defs(abbrs: &[(&str, &[Rational])]) -> Vec<DegreeDefinition> {
     abbrs
         .iter()
-        .map(|s| Pitch::parse(s).expect("valid pitch literal"))
+        .map(|(s, alts)| DegreeDefinition {
+            pitch: Pitch::parse(s).expect("valid pitch literal"),
+            alterations: alts.to_vec()
+        })
         .collect()
 }
 
@@ -48,40 +52,37 @@ pub static C_MAJOR: LazyLock<Scale> = LazyLock::new(|| {
     Scale::from_intervals(Pitch::new(0, rational(0), 0), &ints)
 });
 
-pub static C_HARMONIC_MINOR: LazyLock<Scale> = LazyLock::new(|| {
-    let ints = parse_ints(&["M2", "m2", "M2", "M2", "m2", "A2", "m2"]);
-    Scale::from_intervals(Pitch::new(0, rational(0), 0), &ints)
-});
-
 pub static C_CHROMATIC: LazyLock<Scale> = LazyLock::new(|| {
-    let degs = parse_pitches(&[
-        "c", "cs", "df", "d", "ds", "ef", "e", "f", "fs", "gf", "g", "gs", "af", "a", "as", "bf",
-        "b",
+    let defs = parse_degree_defs(&[
+        ("c", &[rational(-1), rational(1)]),
+        ("d", &[rational(-1), rational(1)]),
+        ("e", &[rational(-1), rational(1)]),
+        ("f", &[rational(-1), rational(1)]),
+        ("g", &[rational(-1), rational(1)]),
+        ("a", &[rational(-1), rational(1)]),
+        ("b", &[rational(-1), rational(1)]),
     ]);
-    Scale::from_pitches(&degs)
+    Scale::from_definitions(&defs)
 });
 
-pub static C_COMPLETE_MINOR: LazyLock<Scale> = LazyLock::new(|| {
-    let degs = parse_pitches(&["c", "d", "ef", "f", "g", "af", "a", "bf", "b"]);
-    Scale::from_pitches(&degs)
-});
-
-pub static C_ASCENDING_MINOR: LazyLock<Scale> = LazyLock::new(|| {
-    let degs = parse_pitches(&["c", "d", "ef", "f", "g", "a", "b"]);
-    Scale::from_pitches(&degs)
-});
-
-pub static C_DESCENDING_MINOR: LazyLock<Scale> = LazyLock::new(|| {
-    let degs = parse_pitches(&["c", "d", "ef", "f", "gf", "af", "b"]);
-    Scale::from_pitches(&degs)
+pub static C_MINOR: LazyLock<Scale> = LazyLock::new(|| {
+    let defs = parse_degree_defs(&[
+        ("c", &[]),
+        ("d", &[]),
+        ("ef", &[]),
+        ("f", &[]),
+        ("g", &[]),
+        ("af", &[rational(1)]),
+        ("bf", &[rational(1)]),
+    ]);
+    Scale::from_definitions(&defs)
 });
 
 pub mod scales {
     use std::sync::LazyLock;
 
     use super::{
-        Pitch, Scale, C_ASCENDING_MINOR, C_CHROMATIC, C_COMPLETE_MINOR, C_DESCENDING_MINOR,
-        C_HARMONIC_MINOR, C_MAJOR,
+        Pitch, Scale, C_CHROMATIC, C_MAJOR, C_MINOR,
     };
 
     pub mod c {
@@ -95,38 +96,22 @@ pub mod scales {
         pub static AEOLIAN: LazyLock<Scale> = LazyLock::new(|| C_MAJOR.rotate(5, false));
         pub static LOCRIAN: LazyLock<Scale> = LazyLock::new(|| C_MAJOR.rotate(6, false));
 
+        // Major scale.
         pub static MAJOR: LazyLock<Scale> = LazyLock::new(|| (*C_MAJOR).clone());
-        pub static HARMONIC_MINOR: LazyLock<Scale> = LazyLock::new(|| (*C_HARMONIC_MINOR).clone());
 
-        /// Chromatic scale with enharmonics.
-        ///
-        /// ```text
-        ///  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16
-        ///  C Cs Df  D Ds Ef  E  F Fs Gf  G Gs Af  A As Bf  B
-        /// ```
+        /// Chromatic scale.
         pub static CHROMATIC: LazyLock<Scale> = LazyLock::new(|| (*C_CHROMATIC).clone());
 
-        /// Includes all altered tones as degrees.
-        ///
-        /// ```text
-        ///  0  1  2  3  4  5  6  7  8
-        ///  C  D Ef  F  G Af  A Bf  B
-        /// ```
-        pub static COMPLETE_MINOR: LazyLock<Scale> = LazyLock::new(|| (*C_COMPLETE_MINOR).clone());
-        pub static ASCENDING_MINOR: LazyLock<Scale> =
-            LazyLock::new(|| (*C_ASCENDING_MINOR).clone());
-        pub static DESCENDING_MINOR: LazyLock<Scale> =
-            LazyLock::new(|| (*C_DESCENDING_MINOR).clone());
+        /// Minor scale, defined as the Aeolian mode with allowed altered tones 
+        /// of VI-sharp and VII-sharp.
+        pub static MINOR: LazyLock<Scale> = LazyLock::new(|| (*C_MINOR).clone());
     }
 
     pub fn major(root: Pitch) -> Scale {
         C_MAJOR.transpose_to(&root)
     }
-    pub fn harmonic_minor(root: Pitch) -> Scale {
-        C_HARMONIC_MINOR.transpose_to(&root)
-    }
-    pub fn complete_minor(root: Pitch) -> Scale {
-        C_COMPLETE_MINOR.transpose_to(&root)
+    pub fn minor(root: Pitch) -> Scale {
+        C_MINOR.transpose_to(&root)
     }
 
     pub fn ionian(root: Pitch) -> Scale {

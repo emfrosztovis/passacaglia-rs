@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use passacaglia_core::Degree;
 use passacaglia_core::std_hept::Pitch;
 use passacaglia_core::structure::Container;
 
@@ -34,7 +35,7 @@ pub fn enforce_fixed_progression(prog: Vec<Option<Vec<Chord>>>) -> HarmonyRule {
 pub fn enforce_valid_chords() -> HarmonyRule {
     Rc::new(move |_ctx, s, cur, c| {
         let scale = &s.harmony.scale;
-        let mut basses: Vec<Pitch> = scale.degrees.clone();
+        let mut basses: Vec<Pitch> = scale.all_degrees().iter().map(Degree::to_pitch).collect();
         let mut notes: Vec<Pitch> = Vec::new();
 
         for v in &s.voices {
@@ -43,9 +44,7 @@ pub fn enforce_valid_chords() -> HarmonyRule {
             };
             let mut bass: Option<Pitch> = None;
             for n in m.notes.iter() {
-                if !n.is_non_harmonic()
-                    && let Some(p) = n.pitch
-                {
+                if !n.is_non_harmonic() && let Some(p) = n.pitch {
                     let p0 = p.with_period(0);
                     if v.index() == s.voices.len() - 1 {
                         if bass.is_none_or(|b| b.ord() > p0.ord()) {
@@ -72,7 +71,7 @@ pub fn enforce_valid_chords() -> HarmonyRule {
                     let tones_ok = !chord
                         .tones
                         .iter()
-                        .any(|x| scale.get_exact_degree(x, false).is_none());
+                        .any(|x| scale.get_degree(x).is_none());
                     let notes_ok = !notes.iter().any(|x| !chord.contains(x));
                     if tones_ok && notes_ok {
                         map.set(chord, 0.0);

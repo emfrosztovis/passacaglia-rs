@@ -1,30 +1,22 @@
 use std::rc::Rc;
 
-use passacaglia_common::rational;
 use passacaglia_core::std_hept::Scale;
 use passacaglia_core::structure::Container;
 
-use crate::chord::{chords, Chord};
+use crate::chord::{Chord, chords};
 use crate::context::{Candidates, HarmonyRule};
 
-fn get_degree_triads(i: usize, scale: &Scale) -> Vec<Chord> {
-    let t1 = scale.at(i, rational(0));
-    let t2 = t1.next().next();
-    let t3 = t2.next().next();
-    let chord = Chord::from_pitches(&[t1.to_pitch(), t2.to_pitch(), t3.to_pitch()], 0);
-    vec![chord.clone(), chord.to_position(1)]
-}
-
 fn triads(
-    array: &[(usize, f64)], scale: &Scale, 
+    array: &[(usize, Chord, f64)], scale: &Scale, 
     c: Option<Candidates<Chord>>
 ) -> Candidates<Chord> {
     let map = Candidates::from_pairs(
         array
             .iter()
-            .flat_map(|&(x, cost)| 
-                get_degree_triads(x, scale).iter()
-                    .map(|t| (t.clone(), cost)).collect::<Vec<_>>())
+            .flat_map(|&(x, ref ch, cost)| {
+                let chord = ch.with_root(scale.at(x).to_pitch());
+                vec![(chord.clone(), cost), (chord.to_position(1), cost)]
+            })
     );
     match c {
         Some(mut c) => {
@@ -42,7 +34,7 @@ pub fn enforce_functional_progression_major() -> HarmonyRule {
         let prev = cur.prev().and_then(|p| s.harmony.item(p.index()).chord.as_ref());
 
         let Some(prev) = prev else {
-            let tonic = chords::major().with_root(scale.root());
+            let tonic = chords::major().with_root(scale.root().pitch);
             return match c {
                 Some(mut c) => {
                     c.filter(|x, _| *x == tonic);
@@ -52,41 +44,125 @@ pub fn enforce_functional_progression_major() -> HarmonyRule {
             };
         };
 
-        let Some(deg) = scale.get_exact_degree(&prev.root(), false) else {
+        let Some(deg) = scale.get_degree(&prev.root()) else {
             return Candidates::new();
         };
 
-        // Schoenberg?
-        // match deg.index {
-        //     0 => triads(&[0, 1, 2, 3, 4, 5], scale, c),
-        //     1 => triads(&[4, 6], scale, c),
-        //     2 => triads(&[3, 5], scale, c),
-        //     3 => triads(&[0, 1, 4, 6], scale, c),
-        //     4 | 6 => triads(&[0, 5], scale, c),
-        //     5 => triads(&[1, 3, 4], scale, c),
-        //     _ => unreachable!("valid scale degree"),
-        // }
-
-        // Walter Piston, _Harmony_, Ch. 3
-        // match deg.index {
-        //     0 => triads(&[(3, 0.0), (4, 0.0), (5, 10.0), (1, 40.0), (2, 40.0), (0, 40.0)], scale, c),
-        //     1 => triads(&[(4, 0.0), (5, 10.0), (6, 30.0)], scale, c),
-        //     2 => triads(&[(5, 0.0), (3, 10.0), (6, 30.0)], scale, c),
-        //     3 => triads(&[(4, 0.0), (0, 10.0), (1, 10.0), (6, 30.0)], scale, c),
-        //     4 => triads(&[(0, 0.0), (5, 10.0), (3, 10.0)], scale, c),
-        //     5 => triads(&[(1, 0.0), (4, 0.0), (2, 10.0), (3, 10.0)], scale, c),
-        //     6 => triads(&[(2, 0.0)], scale, c),
-        //     _ => unreachable!("valid scale degree"),
-        // }
-
+        // 0  1   2  3  4  5   6
+        // I II III IV  V VI VII
+        // M  m   m  M  M  m dim
         match deg.index {
-            0 => triads(&[(3, 0.0), (4, 0.0), (5, 10.0), (1, 40.0), (2, 40.0), (0, 40.0)], scale, c),
-            1 => triads(&[(4, 0.0), (6, 30.0)], scale, c),
-            2 => triads(&[(5, 0.0), (3, 10.0)], scale, c),
-            3 => triads(&[(4, 0.0), (0, 10.0), (1, 10.0), (6, 30.0)], scale, c),
-            4 => triads(&[(0, 0.0), (5, 10.0)], scale, c),
-            5 => triads(&[(1, 0.0), (4, 0.0), (3, 10.0)], scale, c),
-            6 => triads(&[(2, 0.0), (5, 10.0)], scale, c),
+            0 => triads(&[
+                (3, chords::major(), 0.0), 
+                (4, chords::major(), 0.0), 
+                (5, chords::minor(), 10.0), 
+                (1, chords::minor(), 40.0), 
+                (2, chords::minor(), 40.0), 
+                (0, chords::major(), 40.0)
+            ], scale, c),
+            1 => triads(&[
+                (4, chords::major(), 0.0), 
+                (6, chords::dim(), 30.0)
+            ], scale, c),
+            2 => triads(&[
+                (5, chords::minor(), 0.0), 
+                (3, chords::major(), 10.0)
+            ], scale, c),
+            3 => triads(&[
+                (4, chords::major(), 0.0), 
+                (0, chords::major(), 10.0), 
+                (1, chords::minor(), 10.0), 
+                (6, chords::dim(), 30.0)
+            ], scale, c),
+            4 => triads(&[
+                (0, chords::major(), 0.0), 
+                (5, chords::minor(), 10.0)
+            ], scale, c),
+            5 => triads(&[
+                (1, chords::minor(), 0.0), 
+                (4, chords::major(), 0.0),
+                (3, chords::major(), 10.0)
+            ], scale, c),
+            6 => triads(&[
+                (2, chords::minor(), 0.0), 
+                (5, chords::minor(), 10.0)
+            ], scale, c),
+            _ => unreachable!("valid scale degree"),
+        }
+    })
+}
+
+#[must_use]
+pub fn enforce_functional_progression_minor() -> HarmonyRule {
+    Rc::new(move |_ctx, s, cur, c| {
+        let scale = &s.harmony.scale;
+        let prev = cur.prev().and_then(|p| s.harmony.item(p.index()).chord.as_ref());
+
+        let Some(prev) = prev else {
+            let tonic = chords::minor().with_root(scale.root().pitch);
+            return match c {
+                Some(mut c) => {
+                    c.filter(|x, _| *x == tonic);
+                    c
+                }
+                None => Candidates::from_pairs(vec![(tonic, 0.0)]),
+            };
+        };
+
+        let Some(deg) = scale.get_degree(&prev.root()) else {
+            return Candidates::new();
+        };
+
+        // 0   1   2  3  4    5   6
+        // i  ii iii iv  v   vi vii
+        // m dim   M  m  m    M   M
+        // -   m aug  M  M [dim dim]
+        match deg.index {
+            0 => triads(&[
+                (3, chords::minor(), 0.0), 
+                (3, chords::major(), 0.0), 
+                (4, chords::minor(), 0.0), 
+                (4, chords::major(), 0.0), 
+                (5, chords::major(), 10.0), 
+                (1, chords::minor(), 40.0), 
+                (1, chords::dim(), 40.0), 
+                (2, chords::major(), 40.0), 
+                // (2, chords::aug(), 40.0), 
+                (0, chords::minor(), 40.0)
+            ], scale, c),
+            1 => triads(&[
+                (4, chords::minor(), 0.0), 
+                (4, chords::major(), 0.0), 
+                (6, chords::major(), 30.0),
+            ], scale, c),
+            2 => triads(&[
+                (5, chords::major(), 0.0), 
+                (3, chords::minor(), 10.0),
+                (3, chords::major(), 10.0),
+            ], scale, c),
+            3 => triads(&[
+                (4, chords::minor(), 0.0), 
+                (4, chords::major(), 0.0), 
+                (0, chords::major(), 10.0), 
+                (1, chords::minor(), 10.0), 
+                (6, chords::major(), 30.0),
+            ], scale, c),
+            4 => triads(&[
+                (0, chords::minor(), 0.0), 
+                (5, chords::major(), 10.0)
+            ], scale, c),
+            5 => triads(&[
+                (1, chords::minor(), 0.0), 
+                (4, chords::minor(), 0.0), 
+                (4, chords::major(), 0.0), 
+                (3, chords::minor(), 10.0),
+                (3, chords::major(), 10.0),
+            ], scale, c),
+            6 => triads(&[
+                (2, chords::major(), 0.0), 
+                // (2, chords::aug(), 0.0), 
+                (5, chords::major(), 10.0)
+            ], scale, c),
             _ => unreachable!("valid scale degree"),
         }
     })

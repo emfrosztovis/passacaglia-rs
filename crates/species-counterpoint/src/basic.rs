@@ -110,6 +110,13 @@ pub struct MelodicSettings {
     pub max_unidirectional_ignorable_3rd_leaps: i64,
 }
 
+impl MelodicSettings {
+    #[must_use]
+    pub fn unrestricted() -> Self {
+        MelodicSettings { forbid_repeated_notes: false, max_consecutive_leaps: i64::MAX, max_ignorable_3rd_leaps: i64::MAX, max_unidirectional_consecutive_leaps: i64::MAX, max_unidirectional_ignorable_3rd_leaps: i64::MAX }
+    }
+}
+
 /// A factory for a counterpoint voice (produced by `define_species` /
 /// `define_imitation`).
 #[derive(Clone)]

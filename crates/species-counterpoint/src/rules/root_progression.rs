@@ -13,8 +13,8 @@ pub fn enforce_root_progression(root_intervals: Vec<Interval>, chords: Vec<Chord
         let prev = cur.prev().and_then(|p| s.harmony.item(p.index()).chord.as_ref());
 
         let Some(prev) = prev else {
-            let tonic_major = chords::major().with_root(scale.root());
-            let tonic_minor = chords::minor().with_root(scale.root());
+            let tonic_major = chords::major().with_root(scale.root().pitch);
+            let tonic_minor = chords::minor().with_root(scale.root().pitch);
             return match c {
                 Some(mut c) => {
                     c.filter(|x, _| *x == tonic_major || *x == tonic_minor);
@@ -31,7 +31,7 @@ pub fn enforce_root_progression(root_intervals: Vec<Interval>, chords: Vec<Chord
                 let tones_ok = !chord
                     .tones
                     .iter()
-                    .any(|x| scale.get_exact_degree(x, false).is_none());
+                    .any(|x| scale.get_degree(x).is_none());
                 if tones_ok {
                     new_chords.push((chord, 0.0));
                 }

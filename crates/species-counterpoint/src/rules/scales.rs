@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
+use passacaglia_common::rational;
 use passacaglia_core::std_hept::scales;
 use passacaglia_core::std_hept::{Interval, Pitch};
 use passacaglia_macros::std_hept_interval as interval;
@@ -92,7 +93,7 @@ pub fn enforce_directional_degree_matrix(m: DegreeMatrix) -> CandidateRule {
             && sign != 0
             && let map = if sign > 0 { &m.upward } else { &m.downward }
 
-            && let Some(deg) = s.harmony.scale.get_exact_degree(&prev, false)
+            && let Some(deg) = s.harmony.scale.get_degree(&prev)
             && let Some(pref) = map.get(&deg.index)
         {
             let next_map: HashMap<Pitch, f64> = pref
@@ -124,7 +125,7 @@ pub fn enforce_directional_degree_matrix(m: DegreeMatrix) -> CandidateRule {
 pub fn enforce_minor(root: Pitch) -> CandidateRule {
     Rc::new(move |_ctx, _s, cur, c, ty| {
         let voice = cur.parent().container();
-        let scale = scales::complete_minor(root);
+        let scale = scales::minor(root);
 
         let mut c = c.unwrap_or_else(|| {
             let Some((lo, hi)) = voice.ranges() else {
@@ -145,55 +146,38 @@ pub fn enforce_minor(root: Pitch) -> CandidateRule {
         // Schoenberg's four Wendepunktgesetze listed in _Theory of Harmony_, Chapter 5
         // 
         // ```text
-        //  0  1  2  3  4  5  6  7  8
-        //  C  D Ef  F  G Af  A Bf  B
-        //  A  B  C  D  E  F Fs  G Gs
+        //  0  1  2  3  4  5  6
+        //  C  D Ef  F  G Af Bf
+        //  A  B  C  D  E  F  G
         // ```
         if let Some((_n1, p1)) = note_pitch(cur.prev_global())
-            && let Some(d1) = scale.get_exact_degree(&p1, false)
+            && let Some(d1) = scale.get_degree(&p1)
             // && let Some((_, p0)) = note_pitch(prev_different(n1))
-            // && scale.get_exact_degree(&p0, false).is_some()
+            // && scale.get_degree(&p0, false).is_some()
         {
             // Gs must go to A
-            if d1.index == 8 {
+            if d1.index == 6 && d1.acci == rational(1) {
                 let target = p1.add(&interval!("m2"));
                 c.filter(|x, _| *x == target);
             }
 
             // Fs must go to Gs
-            if d1.index == 6 {
+            if d1.index == 5 && d1.acci == rational(1) {
                 let target = p1.add(&interval!("M2"));
                 c.filter(|x, _| *x == target);
             }
 
             // G must go to F
-            if d1.index == 7 {
+            if d1.index == 6 && d1.acci == rational(0) {
                 let target = p1.add(&interval!("-M2"));
                 c.filter(|x, _| *x == target);
             }
 
             // F must go to E
-            if d1.index == 7 {
+            if d1.index == 5 && d1.acci == rational(0) {
                 let target = p1.add(&interval!("-m2"));
                 c.filter(|x, _| *x == target);
             }
-
-            // if d1.index == 6 {
-            //     if p0.interval_to(&p1) != interval!("M2") {
-            //         return Candidates::new();
-            //     }
-            //     let target = p1.add(&interval!("M2"));
-            //     c.filter(|x, _| *x == target);
-            //     return c;
-            // }
-            // if d1.index == 7 {
-            //     if p0.interval_to(&p1) != interval!("-M2") {
-            //         return Candidates::new();
-            //     }
-            //     let target = p1.add(&interval!("-M2"));
-            //     c.filter(|x, _| *x == target);
-            //     return c;
-            // }
         }
         c
     })
