@@ -5,6 +5,7 @@ pub trait TemporalElement {}
 
 /// An element with a positive duration, such as a note or measure.
 pub trait DurationalElement: TemporalElement {
+    /// Duration of the element.
     fn duration(&self) -> Rational;
 }
 

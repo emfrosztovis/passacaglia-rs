@@ -95,7 +95,7 @@ impl<S: PitchSystem> Pitch<S> {
         Interval::new(steps.unsigned_abs() as usize, distance.abs(), sign)
     }
 
-    /// Add an interval. The accidental is recomputed so the result's ordinal
+    /// Add an interval to the pitch. The accidental is recomputed so the result's ordinal
     /// equals exactly `ord + distance*sign`.
     #[must_use]
     pub fn add(&self, i: &Interval<S>) -> Self {
@@ -111,21 +111,25 @@ impl<S: PitchSystem> Pitch<S> {
         Pitch::<S>::new(index, acci, period)
     }
 
+    /// Add an accidental to the pitch. The degree index is *not* changed.
     #[must_use]
     pub fn add_accidental(&self, n: Rational) -> Self {
         Pitch::<S>::new(self.index, self.acci + n, self.period)
     }
 
+    /// Returns a copy of the pitch with the given period.
     #[must_use]
     pub fn with_period(&self, p: i32) -> Self {
         Pitch::<S>::new(self.index, self.acci, p)
     }
 
+    /// Add a given number of periods to the pitch.
     #[must_use]
     pub fn add_period(&self, p: i32) -> Self {
         Pitch::<S>::new(self.index, self.acci, self.period + p)
     }
 
+    /// Returns whether the ordinal numbers of the two pitches match.
     #[must_use]
     pub fn enharmonically_equals(&self, other: &Pitch<S>) -> bool {
         self.ord() == other.ord()

@@ -10,9 +10,17 @@ use crate::std_hept::system::StdHeptatonic;
 const ROMAN_NUMERALS: [&str; 10] = ["i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x"];
 
 impl Scale<StdHeptatonic> {
-    /// Parse a scale-degree expression (roman numeral or `[n]`, plus accidental).
+    /// Parse a scale-degree expression. The degree index can be written as a Roman numeral (1-10 
+    /// are supported), or as a positive integer in square brackets. The accidental (alteration) is
+    /// written like in a pitch expression.
+    /// 
+    /// To be compatible with music notation conventions, indices are 1-based despite the fact that 
+    /// [`Degree`] actually uses 0-based indices.
+    /// 
+    /// Examples: `i` (=`[1]`), `viis` (=`[7]s`), `ix2/3f` (=`[9]2/3f`)
     #[must_use]
     pub fn parse_degree(&self, ex: &str) -> Option<Degree<'_, StdHeptatonic>> {
+        let ex = ex.to_ascii_lowercase();
         let bytes = ex.as_bytes();
         let (idx, rest) = if bytes.first() == Some(&b'[') {
             let close = ex.find(']')?;

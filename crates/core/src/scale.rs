@@ -42,9 +42,11 @@ impl<S: PitchSystem> Hash for DegreeDefinition<S> {
     }
 }
 
-/// Represents a scale in a pitch system, starting from a given pitch class (the
-/// root) and consisting of several degrees. Each degree can allow a number of altered
-/// tones to base on it.
+/// Represents a scale in a pitch system, starting from a given pitch class (the root) and 
+/// consisting of several degrees. Each degree can allow a number of altered tones to base on it.
+/// 
+/// Although both pitch systems and scales have "degrees", they're different things and you should
+/// note this when reading.
 #[derive(Debug, Clone)]
 pub struct Scale<S: PitchSystem> {
     /// List of degrees. Always non-decreasing and spans less than the system's

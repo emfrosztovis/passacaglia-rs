@@ -2,12 +2,14 @@ use std::ops::Deref;
 
 use passacaglia_common::Rational;
 
-/// An ordered sequence of children, each with a start time and a span.
+/// An ordered sequence where each element has a start time and a span.
 pub trait Container {
     type Item;
 
+    /// Number of elements in the container.
     fn len(&self) -> usize;
 
+    /// Whether the container has no children.
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -25,10 +27,12 @@ pub trait Container {
     /// The element at index `i` (precondition: `i < len()`).
     fn item(&self, i: usize) -> &Self::Item;
 
+    /// Retrieves the element at index `i`.
     fn get(&self, i: usize) -> Option<&Self::Item> {
         (i < self.len()).then(|| self.item(i))
     }
 
+    /// Returns a cursor pointing to the element at index `i`.
     fn cursor(&self, i: usize) -> Option<Cursor<'_, Self, ()>> {
         (i < self.len()).then(|| Cursor {
             container: self,
@@ -39,10 +43,12 @@ pub trait Container {
         })
     }
 
+    /// Returns a cursor pointing to the first element, if any.
     fn first(&self) -> Option<Cursor<'_, Self, ()>> {
         self.cursor(0)
     }
 
+    /// Returns a cursor pointing to the last element, if any.
     fn last(&self) -> Option<Cursor<'_, Self, ()>> {
         if self.is_empty() {
             return None;
@@ -50,7 +56,8 @@ pub trait Container {
         self.cursor(self.len() - 1)
     }
 
-    /// The cursor of the element containing `time` (start inclusive, end exclusive).
+    /// Returns a cursor pointint to the element that contains the given time point (start 
+    /// inclusive, end exclusive), if any.
     fn cursor_at_time(&self, time: Rational) -> Option<Cursor<'_, Self, ()>> {
         if self.is_sequential() {
             let mut s = self.start(0);
@@ -78,7 +85,7 @@ pub trait Container {
         None
     }
 
-    /// The cursor of the last element strictly before `time`.
+    /// Returns a cursor pointing to the last element strictly before `time`.
     fn cursor_before_time(&self, time: Rational) -> Option<Cursor<'_, Self, ()>> {
         if self.is_sequential() {
             let mut last = None;
@@ -108,6 +115,7 @@ pub trait Container {
         last
     }
 
+    /// Returns an iterator over the cursors pointing to the elements.
     fn iter_cursors(&self) -> Cursors<'_, Self> {
         Cursors {
             container: self,
@@ -116,10 +124,10 @@ pub trait Container {
     }
 }
 
-/// A cursor into a [`Container`] with a statically-typed parent cursor `P`.
+/// An allocation-free cursor into a [`Container`].
 ///
-/// `C` is the immediate container being indexed; `P` is the typed parent cursor
-/// (`()` at the root). Cursors are `Copy` and allocation-free.
+/// `C` is the immediate container being indexed. `P` is the typed parent cursor, i.e. a cursor 
+/// pointing to this cursor's container. If no parent is available, `P` is `()`.
 pub struct Cursor<'a, C: Container + ?Sized, P> {
     container: &'a C,
     index: usize,
@@ -145,38 +153,51 @@ impl<C: Container + ?Sized, P> Deref for Cursor<'_, C, P> {
 }
 
 impl<'a, C: Container + ?Sized, P: Copy> Cursor<'a, C, P> {
+    /// Returns the index of the cursor in the container.
     pub fn index(&self) -> usize {
         self.index
     }
 
+    /// Returns the local start time of the element under the cursor, i.e. time relative to the 
+    /// start of the container.
     pub fn time(&self) -> Rational {
         self.local_time
     }
 
+    /// Returns the global time of the element under the cursor, i.e. time relative to the topmost 
+    /// container that the cursor knows of.
     pub fn global_time(&self) -> Rational {
         self.global_time
     }
 
+    /// Returns the parent cursor, or `()` if there is none.
     pub fn parent(&self) -> P {
         self.parent
     }
 
+    // Returns a reference to the container of this cursor.
     pub fn container(&self) -> &'a C {
         self.container
     }
 
+    /// Returns the duration of the element under the cursor.
     pub fn span(&self) -> Rational {
         self.container.span(self.index)
     }
 
+    /// Returns the local end time of the element under the cursor, i.e. time relative to the start 
+    /// of the container.
     pub fn end_time(&self) -> Rational {
         self.local_time + self.container.span(self.index)
     }
 
+    /// Returns the global end time of the element under the cursor, i.e. time relative to the 
+    /// topmost container that the cursor knows of.
     pub fn global_end_time(&self) -> Rational {
         self.global_time + self.container.span(self.index)
     }
 
+    /// Returns a cursor to the element before the one this cursor points to, if any.
     pub fn prev(&self) -> Option<Self> {
         if self.index == 0 {
             return None;
@@ -197,6 +218,7 @@ impl<'a, C: Container + ?Sized, P: Copy> Cursor<'a, C, P> {
         })
     }
 
+    /// Returns a cursor to the element after the one this cursor points to, if any.
     pub fn next(&self) -> Option<Self> {
         if self.index + 1 >= self.container.len() {
             return None;
@@ -217,6 +239,7 @@ impl<'a, C: Container + ?Sized, P: Copy> Cursor<'a, C, P> {
         })
     }
 
+    /// Returns a cursor to a children of the element that this cursor points to.
     pub fn child(&self, i: usize) -> Option<Cursor<'a, C::Item, Self>>
     where
         C::Item: Container,
@@ -234,6 +257,7 @@ impl<'a, C: Container + ?Sized, P: Copy> Cursor<'a, C, P> {
         })
     }
 
+    /// Returns a cursor to the first child of the element that this cursor points to.
     pub fn first_child(&self) -> Option<Cursor<'a, C::Item, Self>>
     where
         C::Item: Container,
@@ -244,6 +268,7 @@ impl<'a, C: Container + ?Sized, P: Copy> Cursor<'a, C, P> {
         self.child(0)
     }
 
+    /// Returns a cursor to the last child of the element that this cursor points to.
     pub fn last_child(&self) -> Option<Cursor<'a, C::Item, Self>>
     where
         C::Item: Container,
@@ -256,7 +281,8 @@ impl<'a, C: Container + ?Sized, P: Copy> Cursor<'a, C, P> {
     }
 }
 
-/// A step target for cross-boundary navigation (`next_global`/`prev_global`).
+/// A step target for cross-boundary navigation, used by [`Cursor::next_global`] and 
+/// [`Cursor::prev_global`].
 ///
 /// Implemented by `()` (the root, which does not step) and by every cursor whose
 /// element type is itself a [`Container`].
@@ -303,7 +329,7 @@ where
 }
 
 impl<'a, C: Container + ?Sized, P: Stepper<'a, C>> Cursor<'a, C, P> {
-    /// The next leaf in timeline order (crossing container boundaries).
+    /// Returns the next same-level element, crossing container boundaries.
     pub fn next_global(&self) -> Option<Self> {
         if let Some(n) = self.next() {
             return Some(n);
@@ -311,7 +337,7 @@ impl<'a, C: Container + ?Sized, P: Stepper<'a, C>> Cursor<'a, C, P> {
         self.parent.next()?.first()
     }
 
-    /// The previous leaf in timeline order (crossing container boundaries).
+    /// Returns the previous same-level element, crossing container boundaries.
     pub fn prev_global(&self) -> Option<Self> {
         if let Some(p) = self.prev() {
             return Some(p);

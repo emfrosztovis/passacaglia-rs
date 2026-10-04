@@ -126,6 +126,8 @@ impl Interval<StdHeptatonic> {
         Self::from_str(s).ok()
     }
 
+    /// Returns a readable abbreviation of the interval, in the format described in the docs for 
+    /// [`Interval::parse`].
     #[must_use]
     pub fn to_abbreviation(&self, always_signed: bool) -> String {
         let (diff, q) = get_closest_well_known(self);
@@ -145,7 +147,9 @@ impl Interval<StdHeptatonic> {
         format!("{sign}{quality}{}{remainder}", self.steps + 1)
     }
 
-    /// The verbose (`"major sixth"`) form of the interval.
+    /// Returns a verbose readable form of the interval in English, such as "major sixth" or 
+    /// "doubly-diminished fifth downward". The qualifier "upward" is omitted unless `always_signed`
+    /// is set to true.
     #[must_use]
     pub fn to_verbose_string(&self, always_signed: bool) -> String {
         let (diff, q) = get_closest_well_known(self);

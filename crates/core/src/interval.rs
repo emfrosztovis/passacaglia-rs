@@ -9,13 +9,12 @@ use crate::system::PitchSystem;
 /// Represents a signed musical interval in a scale system: a 3-tuple (steps, distance, sign).
 #[derive(Debug)]
 pub struct Interval<S: PitchSystem> {
-    /// A nonnegative integer representing the number of steps between the two
-    /// pitches. E.g. 0 means they share the same degree, 1 means the higher pitch
-    /// is the next degree.
+    /// A nonnegative integer representing the step count between the two pitches. E.g. 0 means 
+    /// they share the same degree, 1 means the higher pitch is the next degree.
     pub steps: usize,
     /// Number of subdivisions between the two pitches (nonnegative).
     pub distance: Rational,
-    /// Sign of the interval.
+    /// Sign of the interval, either `1` or `-1`.
     pub sign: i8,
     _system: PhantomData<S>,
 }
@@ -61,6 +60,8 @@ impl<S: PitchSystem> Interval<S> {
         self.sign == other.sign && self.distance == other.distance
     }
 
+    /// Add another interval to the interval. The result's `steps` and `distance` are independently 
+    /// combined from the two intervals' respective fields.
     #[must_use]
     pub fn add(&self, other: &Interval<S>) -> Self {
         let d = self.distance * i64::from(self.sign) + other.distance * i64::from(other.sign);
@@ -74,6 +75,7 @@ impl<S: PitchSystem> Interval<S> {
         )
     }
 
+    /// Add a given number of periods to the interval.
     #[must_use]
     pub fn add_period(&self, n: i32) -> Self {
         if n == 0 {
@@ -88,8 +90,8 @@ impl<S: PitchSystem> Interval<S> {
         self.add(&offset)
     }
 
-    /// Reduce compound intervals (i.e. spanning more than one period in the
-    /// system) to simple intervals.
+    /// Reduce compound intervals (i.e. spanning more than one period in the system) to simple 
+    /// intervals.
     #[must_use]
     pub fn to_simple(&self, preserve_up_to_steps: Option<usize>) -> Self {
         if self.steps < S::N_DEGREES {
@@ -119,15 +121,15 @@ impl<S: PitchSystem> Interval<S> {
         Interval::new(new_steps, new_distance, self.sign)
     }
 
-    /// Returns true if `other` equals `this`, or `other` is larger but reduces
-    /// to the same simple interval as `this`.
+    /// Returns true if `other` equals `this`, or `other` is larger but reduces to the same simple 
+    /// interval as `this`.
     #[must_use]
     pub fn matches(&self, other: &Interval<S>) -> bool {
         other.to_simple(None) == self.to_simple(None) && other.distance >= self.distance
     }
 
-    /// Returns true if `other` equals `this` enharmonically, or `other` is larger
-    /// but reduces to an enharmonically equivalent simple interval as `this`.
+    /// Returns true if `other` equals `this` enharmonically, or `other` is larger but reduces to 
+    /// a simple interval enharmonically equivalent to `this`.
     #[must_use]
     pub fn matches_enharmonically(&self, other: &Interval<S>) -> bool {
         other
@@ -142,6 +144,7 @@ impl<S: PitchSystem> Interval<S> {
         Interval::new(self.steps, self.distance, sign)
     }
 
+    /// Returns the negation of the interval.
     #[must_use]
     pub fn negate(&self) -> Self {
         Interval::new(
@@ -151,6 +154,7 @@ impl<S: PitchSystem> Interval<S> {
         )
     }
 
+    /// Returns a copy of the interval with a positive sign.
     #[must_use]
     pub fn abs(&self) -> Self {
         Interval::new(self.steps, self.distance, 1)

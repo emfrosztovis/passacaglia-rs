@@ -3,7 +3,7 @@ use passacaglia_common::{rational, Rational};
 use crate::structure::container::Container;
 use crate::structure::elements::InstantaneousElement;
 
-/// An event with its offset within an [`EventContainer`].
+/// An event located at an offset within an [`EventContainer`].
 pub struct Located<T> {
     pub offset: Rational,
     pub element: T,

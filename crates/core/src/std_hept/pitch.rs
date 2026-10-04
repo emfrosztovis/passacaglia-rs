@@ -43,7 +43,8 @@ impl Pitch<StdHeptatonic> {
         Self::from_str(s).ok()
     }
 
-    /// Returns the positive simple interval between two pitches. For example, it returns m2 for c0 and b0.
+    /// Returns the positive simple interval between two pitches. For example, it returns a minor 
+    /// second for C0 and B0.
     #[must_use]
     pub fn absolute_simple_interval_to(&self, b: &Self) -> Interval<StdHeptatonic> {
         let a = self.with_period(0);
@@ -51,15 +52,15 @@ impl Pitch<StdHeptatonic> {
         a.interval_to(&b).abs()
     }
 
-    /// Format the pitch class (letter name + accidental), omitting the octave.
+    /// Returns a readable string form, in the format described in the docs for [`Pitch::parse`], 
+    /// but omitting the octave.
     #[must_use]
     pub fn to_class_string(&self) -> String {
         const NAMES: [&str; 7] = ["c", "d", "e", "f", "g", "a", "b"];
         format!("{}{}", NAMES[self.index], accidental::print(self.acci))
     }
 
-    /// Normalize the pitch so that it uses at most double accidentals
-    /// (i.e. `acci.abs()` < 2).
+    /// Normalize the pitch so that it uses at most a single accidental (i.e. `acci.abs()` < 2).
     #[must_use]
     pub fn normalize(&self) -> Self {
         let acci = self.acci;
@@ -90,6 +91,7 @@ impl Pitch<StdHeptatonic> {
     }
 }
 
+/// Returns a readable string form, in the format described in the docs for [`Pitch::parse`].
 impl fmt::Display for Pitch<StdHeptatonic> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         const NAMES: [&str; 7] = ["c", "d", "e", "f", "g", "a", "b"];

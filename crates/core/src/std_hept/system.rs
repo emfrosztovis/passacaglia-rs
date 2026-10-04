@@ -7,10 +7,9 @@ use crate::system::{PitchSystem, ET12};
 /// The standard, common-practice heptatonic pitch system (7 degrees, 12 pitch
 /// classes, octave period).
 ///
-/// ```text
-///  C     D     E  F     G     A     B
-///  0  1  2  3  4  5  6  7  8  9 10 11
-/// ```
+/// |      Degree | C |   | D |   | E | F |   | G |   | A |    | B  |
+/// |------------:|---|---|---|---|---|---|---|---|---|---|----|----|
+/// | Pitch class | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 |
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct StdHeptatonic;
 

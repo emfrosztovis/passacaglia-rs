@@ -8,15 +8,19 @@ use crate::scale::Scale;
 use crate::system::PitchSystem;
 
 /// Represents a degree within a [`Scale`]: a 3-tuple (index, accidental, period). Note that it 
-/// doesn't have to be an "allowed" tone in that scale; it is a generalized degree that starts from 
+/// doesn't have to be an "allowed" tone in that scale. It's a generalized degree that starts from 
 /// the standard pitch of a scale degree and adds an arbitrary accidental to it.
 /// 
 /// Borrows the scale.
 #[derive(Debug)]
 pub struct Degree<'a, S: PitchSystem> {
+    /// The scale that this degree lives in.
     pub scale: &'a Scale<S>,
+    /// 0-based index of the degree.
     pub index: usize,
+    /// Accidental (or alteration) relative to the standard pitch class of the degree.
     pub acci: Rational,
+    /// Period of the degree.
     pub period: i32,
 }
 

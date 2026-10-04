@@ -1,8 +1,3 @@
-// Musical values here are tiny integers, so the `as` casts are in range and
-// lossless in practice. These pedantic cast lints are pinned to `allow` here
-// (rather than `try_from().unwrap()` everywhere) so the IDE and `cargo clippy`
-// agree. `missing_*_doc` and `wildcard_imports` are also allowed for the same
-// consistency reason.
 #![allow(
     clippy::cast_possible_wrap,
     clippy::cast_possible_truncation,
@@ -15,10 +10,10 @@
 
 //! Core musical abstractions for the passacaglia music engine.
 //!
-//! This crate models pitch/interval/scale systems. A pitch is a
-//! `(degree, accidental, period)` triple that keeps musical spelling distinct
-//! from sounding frequency; a [`PitchSystem`] describes the abstract structure
-//! (period ratio, pitch classes, degrees) of a system.
+//! The core structures defined in this crate aim to be as general and unbiased as possible while 
+//! also being practically useful. They are generic over [`PitchSystem`]s and don't refer to a
+//! single notation system or musical culture. On the other hand, the heptatonic pitch system used
+//! in common-practice Western music is also provided along with a set of convenience methods.
 
 pub mod degree;
 pub mod interval;

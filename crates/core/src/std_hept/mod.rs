@@ -1,5 +1,6 @@
-//! The standard heptatonic (12-TET) pitch system and its concrete pitch,
-//! interval, scale, and degree types, plus parsing and printing.
+//! Provides the standard 12-TET heptatonic pitch system used in common-practice Western music. 
+//! Additionally, some convenience methods for transforming, pretty-printing and parsing are 
+//! implmented for `Pitch`, `Interval`, `Scale` and `Degree`.
 
 mod accidental;
 mod constants;
