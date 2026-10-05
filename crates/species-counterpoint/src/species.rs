@@ -97,21 +97,21 @@ pub(crate) fn species_get_next_steps<'a>(
     s: &'a Score,
     c: MeasureCursor<'a>,
 ) -> Vec<Step> {
-    let idx = (0..measure.notes.len())
+    let note_idx = (0..measure.notes.len())
         .find(|&i| {
             measure.notes[i].pitch.is_none()
                 && matches!(sm.note_schema.get(i), Some(NoteSchema::Tone { .. }))
         })
         .expect("species measure has a writable tone");
-    let ci = c.child(idx).expect("child cursor");
-    let NoteSchema::Tone { harmonic, types, .. } = &sm.note_schema[idx] else {
+    let c_note = c.child(note_idx).expect("child cursor");
+    let NoteSchema::Tone { harmonic, types, .. } = &sm.note_schema[note_idx] else {
         unreachable!("writable position is a tone schema")
     };
 
     let create = |note: Note, _p: Pitch| -> Measure {
         let pitch = note.pitch;
         let mut notes = measure.notes.to_vec();
-        notes[idx] = note;
+        notes[note_idx] = note;
         Measure {
             notes: Rc::from(notes),
             duration: measure.duration,
@@ -125,11 +125,14 @@ pub(crate) fn species_get_next_steps<'a>(
     };
 
     let mut next = Vec::new();
-    if let Some(types) = types {
-        next.extend(sm.ctx.fill_non_harmonic_tone(types, s, ci, &create, 0.0));
+    let prev_note_non_harmonic = c_note.prev().is_none_or(|c| c.is_non_harmonic());
+    if let Some(types) = types
+        && (types.contains(&NonHarmonicType::Suspension) || !prev_note_non_harmonic)
+    {
+        next.extend(sm.ctx.fill_non_harmonic_tone(types, s, c_note, &create, 0.0));
     }
     if *harmonic {
-        next.extend(sm.ctx.fill_harmonic_tone(s, ci, &create, 0.0));
+        next.extend(sm.ctx.fill_harmonic_tone(s, c_note, &create, 0.0));
     }
     next
 }
@@ -503,20 +506,20 @@ pub fn species4() -> VoiceConstructor {
 #[must_use]
 pub fn species5() -> VoiceConstructor {
     let schema = vec![
-        MeasureSchema {
-            name: "sp5.1".to_string(),
-            condition: Some(Box::new(|c, s| {
-                later(c, s) && s.voices.len() > 2 && vdiff(c, s, "sp5.1")
-            })),
-            notes: Box::new(|ml| {
-                vec![NoteSchema::Tone {
-                    harmonic: true,
-                    types: None,
-                    duration: ml,
-                }]
-            }),
-            cost: 0.0,
-        },
+        // MeasureSchema {
+        //     name: "sp5.1".to_string(),
+        //     condition: Some(Box::new(|c, s| {
+        //         later(c, s) && s.voices.len() > 2 && vdiff(c, s, "sp5.1")
+        //     })),
+        //     notes: Box::new(|ml| {
+        //         vec![NoteSchema::Tone {
+        //             harmonic: true,
+        //             types: None,
+        //             duration: ml,
+        //         }]
+        //     }),
+        //     cost: 0.0,
+        // },
         MeasureSchema {
             name: "sp5.2.0".to_string(),
             condition: Some(Box::new(|c, s| first(c, s) && vdiff(c, s, "sp5.2.0"))),
@@ -649,7 +652,7 @@ pub fn species5() -> VoiceConstructor {
                     harmonic: true,
                     types: None,
                     duration: ml / rational(2),
-                });
+                }); // FIXME: require suspension!
                 out
             }),
             cost: 0.0,

@@ -11,7 +11,7 @@ use crate::context::CounterpointContext;
 use crate::score::Score;
 use crate::voice::Voice;
 
-const POWER: f64 = 0.9;
+const POWER: f64 = 0.6;
 
 /// The reward strategy for the solver.
 #[derive(Debug, Clone, Copy, PartialEq)]

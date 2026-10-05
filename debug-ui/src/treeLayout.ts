@@ -370,12 +370,9 @@ export function layoutTree(
       const c = pos.get(cid);
       if (c) {
         edges.push({
-          from: p.id,
-          to: cid,
-          x1: p.x,
-          y1: p.y,
-          x2: c.x,
-          y2: c.y,
+          from: p.id, to: cid,
+          x1: p.x, y1: p.y,
+          x2: c.x, y2: c.y,
           onPath: view.onSolutionPath && nodes.get(cid)!.onSolutionPath,
         });
       }

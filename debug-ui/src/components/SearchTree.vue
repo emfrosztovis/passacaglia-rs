@@ -100,7 +100,7 @@ async function expand(id: number) {
       await expand(expandable[0].id);
     } else {
       const total = meta.value?.targetMeasures ?? 1;
-      const threshold = (meta.value?.nodeCount ?? Infinity) * 0.01;
+      const threshold = Math.min(data.subtreeSize * 0.6, (meta.value?.nodeCount ?? 0) * 0.01);
       const bigChildren = data.children.filter(
         (x) => x.maxMeasureIndex == total || x.subtreeSize > threshold);
       for (const bigChild of bigChildren) {
@@ -141,7 +141,7 @@ function onLeave() {
   if (leaveTimer) {
     clearTimeout(leaveTimer);
   }
-  leaveTimer = setTimeout(() => emit('focusNode', null), 80);
+  leaveTimer = setTimeout(() => emit('focusNode', null), 1000);
 }
 
 function onViewMove(e: MouseEvent) {
@@ -201,7 +201,7 @@ function importanceColor(node: TreeViewNode): string {
   const totalSize = meta.value?.nodeCount ?? 1;
   const p = Math.max(0, Math.min(1, node.maxMeasureIndex / total));
   const hue = 200 - p * 180;
-  const sat = 10 + Math.min(80, node.subtreeSize / totalSize * 1000);
+  const sat = 10 + Math.min(80, node.subtreeSize / totalSize * 100 * 10);
   return `hsl(${hue}, ${sat}%, ${30 + p * 30}%)`;
 }
 
@@ -219,6 +219,11 @@ function importanceSideLength(node: TreeViewNode): number {
 function pathD(e: LayoutEdge): string {
   const mx = (e.x1 + e.x2) / 2;
   return `M ${e.x1} ${e.y1} C ${mx} ${e.y1}, ${mx} ${e.y2}, ${e.x2} ${e.y2}`;
+}
+
+function pathWidth(e: LayoutEdge) {
+  const to = nodes.get(e.to)!;
+  return (3.25 - Math.min(3, to.thisCost! / 25)) * (to.loaded ? 2 : 1);
 }
 
 const hoveredNode = computed(() =>
@@ -376,7 +381,7 @@ onUnmounted(() => {
               :d="pathD(e)"
               fill="none"
               :stroke="e.onPath ? '#f1c40f' : '#666'"
-              :stroke-width="e.onPath ? 1.6 : 0.8"
+              :stroke-width="pathWidth(e)"
               :opacity="e.onPath ? 1 : 0.7"
             />
           </g>

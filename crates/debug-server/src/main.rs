@@ -27,6 +27,7 @@ use axum::{
     },
     routing::get,
 };
+
 use tree::{serve_tree_queries, tree_meta, tree_node, tree_score, TreeQuery};
 use futures_util::{Stream, StreamExt, stream};
 #[allow(unused_imports)]
@@ -42,7 +43,7 @@ use passacaglia_musicxml::ToMxl;
 
 #[allow(unused_imports)]
 use passacaglia_species_counterpoint::{
-    CounterpointContext, CounterpointScoreBuilder, CounterpointSolver, CounterpointSolverProgress, CounterpointSolverRewardStrategy, MelodicSettings, NonHarmonicType, Parameters, Score, SearchNode, define_imitation, imitation, rules, species1, species3, species5,
+    CounterpointContext, CounterpointScoreBuilder, CounterpointSolver, CounterpointSolverProgress, CounterpointSolverRewardStrategy, MelodicSettings, NonHarmonicType, Parameters, Score, SearchNode, define_imitation, imitation, rules, species1, species2, species3, species5,
 };
 
 /// A solver event that crosses the thread boundary. Every variant is `Send`.
@@ -212,9 +213,7 @@ fn run_solver(
 ) {
     let mut ctx = CounterpointContext::new(
         12,
-        Parameters {
-            measure_length: rational(4),
-        },
+        Parameters { measure_length: rational(4), },
     );
 
     ctx.harmony_rules = vec![
@@ -294,7 +293,7 @@ fn run_solver(
 
     solver.report_interval = 1000;
     solver.batch = 50;
-    solver.remove_old = 6;
+    solver.remove_old = 4;
 
     let reward = 5.0;
     let solution = solver.run(&score, 
