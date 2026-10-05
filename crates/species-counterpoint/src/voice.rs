@@ -7,7 +7,7 @@ use passacaglia_common::{rational, Rational};
 use passacaglia_core::std_hept::Pitch;
 use passacaglia_core::structure::{Container, Cursor, DurationalElement, TemporalElement};
 
-use crate::basic::{empty_melodic_context, MelodicContext, MelodicSettings, NewMeasure, Step};
+use crate::basic::{MelodicContext, MelodicSettings, NewMeasure, Step};
 use crate::clef::Clef;
 use crate::context::CounterpointContext;
 use crate::imitation::ImitationMeasure;
@@ -44,10 +44,21 @@ impl Note {
     }
 
     #[must_use]
+    pub fn new_slot(duration: Rational) -> Note {
+        Note {
+            duration,
+            pitch: None,
+            non_harmonic: None,
+            debug: String::new(),
+        }
+    }
+
+    #[must_use]
     pub fn is_non_harmonic(&self) -> bool {
         self.non_harmonic.is_some()
     }
 
+    /// Returns whether this note is the *right hand side* of a tie.
     #[must_use]
     pub fn is_tied(&self) -> bool {
         self.non_harmonic == Some(NonHarmonicType::Suspension)
@@ -99,7 +110,7 @@ impl Measure {
     #[must_use]
     pub fn blank(ctx: &Rc<CounterpointContext>) -> Measure {
         Measure {
-            notes: Rc::from(vec![Note::new(ctx.parameters.measure_length, None, None)]),
+            notes: Rc::from(vec![Note::new_slot(ctx.parameters.measure_length)]),
             duration: ctx.parameters.measure_length,
             kind: MeasureKind::Blank,
         }
@@ -111,11 +122,11 @@ impl Measure {
             MeasureKind::Blank => Some(rational(0)),
             MeasureKind::Fixed => None,
             MeasureKind::Species(sm) => {
-                let idx = sm.note_schema.iter().zip(self.notes.iter())
+                let idx = sm.note_schemas.iter().zip(self.notes.iter())
                     .position(|(a, b)| matches!(a, NoteSchema::Tone { .. }) && b.pitch.is_none());
                 idx.map_or_else(
                     || {
-                        let total = given_total(&sm.note_schema);
+                        let total = given_total(&sm.note_schemas);
                         (total < sm.ctx.parameters.measure_length).then_some(total)
                     },
                     |i| Some(note_start(&self.notes, i)),
@@ -142,7 +153,7 @@ impl Measure {
                 ImitationMeasure::Empty { melodic_context, .. }
                 | ImitationMeasure::Filled { melodic_context, .. } => *melodic_context,
             },
-            _ => empty_melodic_context(),
+            _ => MelodicContext::empty(),
         }
     }
 
@@ -455,7 +466,7 @@ fn measure_kind_eq(a: &MeasureKind, b: &MeasureKind) -> bool {
     match (a, b) {
         (MeasureKind::Blank, MeasureKind::Blank) | (MeasureKind::Fixed, MeasureKind::Fixed) => true,
         (MeasureKind::Species(x), MeasureKind::Species(y)) => {
-            x.name == y.name && x.note_schema == y.note_schema
+            x.name == y.name && x.note_schemas == y.note_schemas
         }
         (MeasureKind::Imitation(x), MeasureKind::Imitation(y)) => imitation_eq(x, y),
         _ => false,
@@ -469,7 +480,7 @@ fn measure_kind_hash<H: Hasher>(kind: &MeasureKind, state: &mut H) {
         MeasureKind::Species(sm) => {
             2u8.hash(state);
             sm.name.hash(state);
-            sm.note_schema.hash(state);
+            sm.note_schemas.hash(state);
         }
         MeasureKind::Imitation(im) => imitation_hash(im, state),
     }

@@ -155,10 +155,11 @@ pub fn enforce_minor(root: Pitch) -> CandidateRule {
             // && let Some((_, p0)) = note_pitch(prev_different(n1))
             // && scale.get_degree(&p0, false).is_some()
         {
-            // Gs must go to A
+            // Gs must go to A or Fs
             if d1.index == 6 && d1.acci == rational(1) {
                 let target = p1.add(&interval!("m2"));
-                c.filter(|x, _| *x == target);
+                let target2 = p1.add(&interval!("-M2"));
+                c.filter(|x, _| *x == target || *x == target2);
             }
 
             // Fs must go to Gs
@@ -167,17 +168,17 @@ pub fn enforce_minor(root: Pitch) -> CandidateRule {
                 c.filter(|x, _| *x == target);
             }
 
-            // G must go to F
-            if d1.index == 6 && d1.acci == rational(0) {
-                let target = p1.add(&interval!("-M2"));
-                c.filter(|x, _| *x == target);
-            }
+            // // G must go to F
+            // if d1.index == 6 && d1.acci == rational(0) {
+            //     let target = p1.add(&interval!("-M2"));
+            //     c.filter(|x, _| *x == target);
+            // }
 
-            // F must go to E
-            if d1.index == 5 && d1.acci == rational(0) {
-                let target = p1.add(&interval!("-m2"));
-                c.filter(|x, _| *x == target);
-            }
+            // // F must go to E
+            // if d1.index == 5 && d1.acci == rational(0) {
+            //     let target = p1.add(&interval!("-m2"));
+            //     c.filter(|x, _| *x == target);
+            // }
         }
         c
     })

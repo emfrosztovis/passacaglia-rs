@@ -218,16 +218,15 @@ impl CounterpointContext {
         rules: &[CandidateRule],
         s: &'a Score,
         current: NoteCursor<'a>,
-        ty: Option<NonHarmonicType>,
+        nht: Option<NonHarmonicType>,
     ) -> Candidates<Pitch> {
         let mut candidates: Option<Candidates<Pitch>> = None;
         for rule in self
-            .candidate_rules_before
-            .iter()
+            .candidate_rules_before.iter()
             .chain(rules.iter())
             .chain(self.candidate_rules_after.iter())
         {
-            let c = rule(self, s, current, candidates, ty);
+            let c = rule(self, s, current, candidates, nht);
             if c.is_empty() {
                 return c;
             }
@@ -268,18 +267,18 @@ impl CounterpointContext {
         rules: &[CandidateRule],
         s: &'a Score,
         note: NoteCursor<'a>,
-        ty: Option<NonHarmonicType>,
+        nht: Option<NonHarmonicType>,
         create: &dyn Fn(Note, Pitch) -> Measure,
         cost_offset: f64,
     ) -> Vec<Step> {
         let measure = note.parent();
         let voice = measure.container();
-        let candidates = self.get_candidates(rules, s, note, ty);
+        let candidates = self.get_candidates(rules, s, note, nht);
 
         let mut steps = Vec::new();
         'outer: for (p, cost) in candidates.iter() {
             let p = *p;
-            let m = create(Note::new(note.span(), Some(p), ty), p);
+            let m = create(Note::new(note.span(), Some(p), nht), p);
             let new_voice = voice.replace_measure(measure.index(), m.clone());
             let new_score = s.replace_voice(voice.index(), new_voice);
             let new_cursor = new_score.voices[voice.index()]

@@ -4,8 +4,7 @@ use passacaglia_core::std_hept::Pitch;
 use passacaglia_macros::std_hept_pitch as pitch;
 
 use crate::basic::{
-    empty_melodic_context, update_melodic_context, MelodicContext, MelodicSettings, NewMeasure, Step,
-    VoiceConstructor,
+    MelodicContext, MelodicSettings, NewMeasure, Step, VoiceConstructor,
 };
 use crate::context::{CandidateRule, CounterpointContext};
 use crate::score::Score;
@@ -50,7 +49,7 @@ pub(crate) fn imitation_make_new_measure<'a>(
 ) -> Vec<NewMeasure> {
     let mc = c
         .prev_global()
-        .map_or_else(empty_melodic_context, |p| p.melodic_context());
+        .map_or_else(MelodicContext::empty, |p| p.melodic_context());
 
     let target_measure = c.index() as i64 - delay;
     let target: Option<Rc<[Note]>> = if target_measure >= 0 {
@@ -65,7 +64,7 @@ pub(crate) fn imitation_make_new_measure<'a>(
 
     let new_measure = match target {
         None => Measure {
-            notes: Rc::from(vec![Note::new(cp.ctx.parameters.measure_length, None, None)]),
+            notes: Rc::from(vec![Note::new_slot(cp.ctx.parameters.measure_length)]),
             duration: cp.ctx.parameters.measure_length,
             kind: MeasureKind::Imitation(ImitationMeasure::Empty {
                 ctx: cp.ctx.clone(),
@@ -77,7 +76,7 @@ pub(crate) fn imitation_make_new_measure<'a>(
         Some(target) => {
             let notes: Vec<Note> = target
                 .iter()
-                .map(|n| Note::new(n.duration, None, None))
+                .map(|n| Note::new_slot(n.duration))
                 .collect();
             Measure {
                 notes: Rc::from(notes),
@@ -135,7 +134,7 @@ pub(crate) fn imitation_get_next_steps<'a>(
                 if i < new_filled.len() {
                     new_filled[i].clone()
                 } else {
-                    Note::new(t.duration, None, None)
+                    Note::new_slot(t.duration)
                 }
             })
             .collect();
@@ -144,7 +143,7 @@ pub(crate) fn imitation_get_next_steps<'a>(
             duration: measure.duration,
             kind: MeasureKind::Imitation(ImitationMeasure::Filled {
                 ctx: ctx.clone(),
-                melodic_context: update_melodic_context(*melodic_context, pitch),
+                melodic_context: melodic_context.update(pitch),
                 target_voice: *target_voice,
                 target_measure: *target_measure,
                 target: target.clone(),

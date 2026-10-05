@@ -3,6 +3,7 @@ use std::rc::Rc;
 use passacaglia_common::{rational, rational_value};
 use passacaglia_core::std_hept::Interval;
 
+use crate::LocalRule;
 use crate::context::{CandidateRule, Candidates};
 use crate::rules::utils::{note_pitch, nth_prev_pitch, prev_non_tied};
 use crate::voice::NonHarmonicType;
@@ -71,30 +72,34 @@ pub fn avoid_repeat2() -> CandidateRule {
     })
 }
 #[must_use]
-pub fn avoid_stagnation() -> CandidateRule {
-    Rc::new(move |_ctx, _s, cur, c, _ty| {
-        let c = c.expect("candidates initialized");
+pub fn avoid_stagnation() -> LocalRule {
+    Rc::new(move |_ctx, _s, cur| {
         let Some((mut cur, p)) = note_pitch(cur.prev_global()) else {
-            return c;
+            return 0.0;
         };
         let mut lo = p;
         let mut hi = p;
+        let mut cost = 0.0;
         for i in 2..=14 {
             let Some((cur1, p1)) = note_pitch(prev_non_tied(cur)) else {
-                return c;
+                return cost;
             };
             if p1.ord() < lo.ord() { lo = p1; }
             if p1.ord() > hi.ord() { hi = p1; }
             cur = cur1;
         
-            let int = lo.interval_to(&hi);
-            if i == 5 && int.steps <= 1
-                || i == 9 && int.steps <= 2
-                || i == 14 && int.steps <= 3
-            {
-                return Candidates::new();
-            }
+            let steps = lo.interval_to(&hi).steps;
+            if steps > 3 { break; }
+
+            cost += (f64::from(i) / (steps as f64) - 2.0).max(0.0) * 10.0;
+
+            // if i == 5 && steps <= 1
+            //     || i == 9 && steps <= 2
+            //     || i == 14 && steps <= 3
+            // {
+            //     return f64::INFINITY;
+            // }
         }
-        c
+        cost
     })
 }

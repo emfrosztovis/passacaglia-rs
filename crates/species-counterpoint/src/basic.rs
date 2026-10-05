@@ -23,60 +23,58 @@ pub struct MelodicContext {
     pub n_unidirectional_3rd_leaps: i64,
 }
 
-#[must_use]
-pub fn empty_melodic_context() -> MelodicContext {
-    MelodicContext {
-        last_pitch: None,
-        leap_direction: 0,
-        n_consecutive_leaps: 0,
-        n3rd_leaps: 0,
-        n_unidirectional_consecutive_leaps: 0,
-        n_unidirectional_3rd_leaps: 0,
-    }
-}
-
-/// Update the melodic context after writing a note with pitch `p`.
-#[must_use]
-pub fn update_melodic_context(old: MelodicContext, p: Option<Pitch>) -> MelodicContext {
-    let cleared = |last_pitch| MelodicContext {
-        last_pitch,
-        leap_direction: 0,
-        n_consecutive_leaps: 0,
-        n3rd_leaps: 0,
-        n_unidirectional_consecutive_leaps: 0,
-        n_unidirectional_3rd_leaps: 0,
-    };
-
-    let Some(last) = old.last_pitch else {
-        return MelodicContext { last_pitch: p, ..old };
-    };
-
-    let Some(pp) = p else {
-        return cleared(None);
-    };
-    let int = last.interval_to(&pp);
-
-    if int.steps <= 1 {
-        return cleared(Some(pp));
+impl MelodicContext {
+    #[must_use]
+    pub fn empty() -> MelodicContext {
+        MelodicContext {
+            last_pitch: None,
+            leap_direction: 0,
+            n_consecutive_leaps: 0,
+            n3rd_leaps: 0,
+            n_unidirectional_consecutive_leaps: 0,
+            n_unidirectional_3rd_leaps: 0,
+        }
     }
 
-    let is_third = int.steps == 2;
-    let is_unidirectional = i64::from(int.sign) == old.leap_direction;
-    MelodicContext {
-        last_pitch: Some(pp),
-        leap_direction: i64::from(int.sign),
-        n_consecutive_leaps: old.n_consecutive_leaps + 1,
-        n3rd_leaps: old.n3rd_leaps + i64::from(is_third),
-        n_unidirectional_consecutive_leaps: if is_unidirectional {
-            old.n_unidirectional_consecutive_leaps + 1
-        } else {
-            0
-        },
-        n_unidirectional_3rd_leaps: if is_unidirectional {
-            old.n_unidirectional_3rd_leaps + i64::from(is_third)
-        } else {
-            0
-        },
+    /// Update the melodic context after writing a note with pitch `p`.
+    #[must_use]
+    pub fn update(&self, p: Option<Pitch>) -> MelodicContext {
+        let cleared = |last_pitch| MelodicContext {
+            last_pitch,
+            leap_direction: 0,
+            n_consecutive_leaps: 0,
+            n3rd_leaps: 0,
+            n_unidirectional_consecutive_leaps: 0,
+            n_unidirectional_3rd_leaps: 0,
+        };
+
+        let Some(last) = self.last_pitch else {
+            return MelodicContext { last_pitch: p, ..*self };
+        };
+
+        let Some(pp) = p else {
+            return cleared(None);
+        };
+        let int = last.interval_to(&pp);
+
+        if int.steps <= 1 {
+            return cleared(Some(pp));
+        }
+
+        let is_third = int.steps == 2;
+        let is_unidirectional = i64::from(int.sign) == self.leap_direction;
+        MelodicContext {
+            last_pitch: Some(pp),
+            leap_direction: i64::from(int.sign),
+            n_consecutive_leaps: self.n_consecutive_leaps + 1,
+            n3rd_leaps: self.n3rd_leaps + i64::from(is_third),
+            n_unidirectional_consecutive_leaps: if is_unidirectional {
+                self.n_unidirectional_consecutive_leaps + 1
+            } else { 0 },
+            n_unidirectional_3rd_leaps: if is_unidirectional {
+                self.n_unidirectional_3rd_leaps + i64::from(is_third)
+            } else { 0 },
+        }
     }
 }
 

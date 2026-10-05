@@ -74,7 +74,7 @@ impl<S: PitchSystem> Hash for Scale<S> {
 impl<S: PitchSystem> Scale<S> {
     #[must_use]
     fn new(degrees: Vec<DegreeDefinition<S>>, intervals: Vec<Interval<S>>) -> Self {
-        debug_assert!(!intervals.is_empty());
+        assert!(!intervals.is_empty());
         debug_assert_eq!(intervals.len(), degrees.len());
         Scale { degrees, intervals }
     }
@@ -112,15 +112,15 @@ impl<S: PitchSystem> Scale<S> {
         let mut intervals = Vec::with_capacity(degrees.len());
         for i in 1..degrees.len() {
             let int = degrees[i - 1].interval_to(&degrees[i]);
-            debug_assert!(int.sign > 0);
+            assert!(int.sign > 0);
             intervals.push(int);
         }
         let wrap = degrees
             .last()
             .expect("non-empty degrees")
             .interval_to(&degrees[0].add_period(1));
-        debug_assert!(wrap.sign > 0);
-        debug_assert!(wrap.distance < rational(S::N_PITCH_CLASSES as i64));
+        assert!(wrap.sign > 0);
+        assert!(wrap.distance < rational(S::N_PITCH_CLASSES as i64));
         intervals.push(wrap);
         let degrees = degrees.iter().copied()
             .map(|pitch| DegreeDefinition { pitch, alterations: Vec::new() })
@@ -134,15 +134,15 @@ impl<S: PitchSystem> Scale<S> {
         let mut intervals = Vec::with_capacity(degrees.len());
         for i in 1..degrees.len() {
             let int = degrees[i - 1].pitch.interval_to(&degrees[i].pitch);
-            debug_assert!(int.sign > 0);
+            assert!(int.sign > 0);
             intervals.push(int);
         }
         let wrap = degrees
             .last()
             .expect("non-empty degrees")
             .pitch.interval_to(&degrees[0].pitch.add_period(1));
-        debug_assert!(wrap.sign > 0);
-        debug_assert!(wrap.distance < rational(S::N_PITCH_CLASSES as i64));
+        assert!(wrap.sign > 0);
+        assert!(wrap.distance < rational(S::N_PITCH_CLASSES as i64));
         intervals.push(wrap);
         Scale::new(degrees.to_vec(), intervals)
     }

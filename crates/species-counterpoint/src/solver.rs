@@ -100,16 +100,11 @@ fn find_writable(score: &Score, ctx: &CounterpointContext, measure_index: usize)
     let mut earliest = None;
     let mut time: Option<Rational> = None;
     for (voice_index, v) in score.voices.iter().enumerate().rev() {
-        if !matches!(v, Voice::Counterpoint(_)) {
-            continue;
-        }
-        let Some(m) = v.cursor(measure_index) else {
-            continue;
-        };
-        let Some(wp) = m.writable_position() else {
-            continue;
-        };
-        if time.is_none_or(|t| wp < t) {
+        if matches!(v, Voice::Counterpoint(_))
+            && let Some(m) = v.cursor(measure_index) 
+            && let Some(wp) = m.writable_position() 
+            && time.is_none_or(|t| wp < t)
+        {
             time = Some(wp);
             earliest = Some(voice_index);
         }
@@ -428,13 +423,14 @@ impl CounterpointSolver {
 
                 let neighbors: Vec<Node> = current
                     .get_neighbors()
-                    .into_iter()
-                    .filter(|n| {
-                        parents
-                            .get(&n.score_hash)
-                            .is_none_or(|bucket| bucket.iter().all(|(s, _)| s != &n.score))
-                    })
-                    .collect();
+                    // .into_iter()
+                    // .filter(|n| {
+                    //     parents
+                    //         .get(&n.score_hash)
+                    //         .is_none_or(|bucket| bucket.iter().all(|(s, _)| s != &n.score))
+                    // })
+                    // .collect()
+                ;
 
                 let mut child_ids = Vec::with_capacity(neighbors.len());
                 for mut n in neighbors {

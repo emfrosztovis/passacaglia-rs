@@ -12,9 +12,6 @@ pub fn avoid_consecutive_measures_with_same_rhythm(
 ) -> LocalRule {
     Rc::new(move |_ctx, _s, cur| {
         let measure = cur.parent();
-        // only check at the end of a measure
-        // if cur.global_end_time() != measure.global_end_time() { return 0.0; }
-
         let voice = measure.container();
         if !pred(voice) { return 0.0; }
 
@@ -23,7 +20,7 @@ pub fn avoid_consecutive_measures_with_same_rhythm(
         for (a, b) in prev_measure.notes.iter().zip(measure.notes.iter()) {
             if a.pitch.is_none() || b.pitch.is_none() { return cost; }
             if a.duration != b.duration { return cost; }
-            cost += 10.0 * rational_value(a.duration);
+            cost += 20.0 * rational_value(a.duration);
         }
 
         if prev_measure.len() == measure.len() {
@@ -31,5 +28,6 @@ pub fn avoid_consecutive_measures_with_same_rhythm(
         } else {
             cost
         }
+        // cost
     })
 }

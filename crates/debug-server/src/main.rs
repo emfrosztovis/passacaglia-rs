@@ -28,7 +28,7 @@ use axum::{
     routing::get,
 };
 
-use passacaglia_species_counterpoint::Voice;
+use passacaglia_species_counterpoint::{Voice, species4};
 use passacaglia_species_counterpoint::voice::{CounterpointVoice, VoiceKind};
 use tree::{serve_tree_queries, tree_meta, tree_node, tree_score, TreeQuery};
 use futures_util::{Stream, StreamExt, stream};
@@ -214,7 +214,7 @@ fn run_solver(
     tree_rx: std::sync::mpsc::Receiver<TreeQuery>,
 ) {
     let mut ctx = CounterpointContext::new(
-        8,
+        12,
         Parameters { measure_length: rational(4), },
     );
 
@@ -225,11 +225,12 @@ fn run_solver(
     ];
 
     ctx.local_rules = vec![
-        rules::avoid_consecutive_measures_with_same_rhythm(|v| {
-            if let Voice::Counterpoint(
-                CounterpointVoice { kind: VoiceKind::Species { name, .. }, .. }
-            ) = v { name == "sp5" } else { false }
-        }),
+        // rules::avoid_consecutive_measures_with_same_rhythm(|v| {
+        //     if let Voice::Counterpoint(
+        //         CounterpointVoice { kind: VoiceKind::Species { name, .. }, .. }
+        //     ) = v { name == "sp5" } else { false }
+        // }),
+        // rules::avoid_stagnation(),
         rules::limit_consecutive_leaps(),
         rules::forbid_perfects_by_similar_motion(),
         rules::forbid_nearby_perfects(),
@@ -245,14 +246,13 @@ fn run_solver(
         rules::enforce_neighbor_tones(),
         rules::enforce_suspension(),
         rules::forbid_voice_overlapping2(),
-        rules::avoid_repeat2(),
-        rules::avoid_stagnation(),
     ];
 
     ctx.candidate_rules_after = vec![
         rules::enforce_melody_intervals(),
         rules::enforce_leap_preparation(),
         rules::enforce_leap_resolution(),
+        rules::avoid_repeat2(),
     ];
 
     ctx.harmonic_tone_rules = vec![
@@ -270,10 +270,19 @@ fn run_solver(
     let ctx = Rc::new(ctx);
 
     let score = CounterpointScoreBuilder::new(ctx.clone())
-        .soprano(&species5())
-        .alto(&species5())
-        .tenor(&species5())
-        .bass(&species5())
+        // .soprano(&species5())
+        // .alto(&define_imitation(
+        //     MelodicSettings::unrestricted(), 
+        //     0, 1, |x| {
+        //         vec![
+        //             x.add(&interval!("-d5")),
+        //             x.add(&interval!("-P5")),
+        //             x.add(&interval!("-A5")),
+        //         ]
+        //     }))
+        .tenor(&species4())
+        // // .bass(&species2())
+        .bass(&species1())
 
         // .build(&scales::major(pitch!("c")), None)
         .build(&scales::minor(pitch!("a")), None)
@@ -290,10 +299,10 @@ fn run_solver(
     });
 
     solver.report_interval = 1000;
-    solver.batch = 50;
-    solver.remove_old = 4;
+    solver.batch = 100;
+    solver.remove_old = 6;
 
-    let reward = 6.0;
+    let reward = 8.0;
     let solution = solver.run(&score, 
         CounterpointSolverRewardStrategy::Constant { value: reward  });
 

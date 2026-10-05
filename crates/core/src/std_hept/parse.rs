@@ -125,7 +125,7 @@ fn gcd(a: u64, b: u64) -> u64 {
 }
 
 fn reduce(num: i64, den: i64) -> (i64, i64) {
-    debug_assert!(den > 0);
+    assert!(den > 0);
     let g = gcd(num.unsigned_abs(), den as u64) as i64;
     (num / g, den / g)
 }

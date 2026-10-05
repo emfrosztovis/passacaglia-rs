@@ -56,8 +56,10 @@ pub fn nth_prev_pitch(mut c: NoteCursor<'_>, n: usize) -> Option<Pitch> {
 
 #[must_use]
 pub fn is_perfect_consonance(i: &Interval) -> bool {
-    let d = i.to_simple(None).distance;
-    d == rational(0) || d == rational(7) || d == rational(12)
+    // let d = i.to_simple(None).distance;
+    // d == rational(0) || d == rational(7) || d == rational(12)
+    let d = i.to_simple(None).abs();
+    d == interval!("P1") || d == interval!("P5") || d == interval!("P8")
 }
 
 /// Returns `true` if `i` is a perfect unison, major/minor third, perfect fourth
@@ -83,9 +85,13 @@ pub fn is_leading_tone(p: &Pitch, s: &Scale) -> bool {
             && deg.to_pitch().absolute_simple_interval_to(&s.root().pitch) == interval!("m2"))
 }
 
-
+/// If this is tied, first go to the start of the tie. Then go to the previous note. If this note 
+/// is tied, go to the start of that tie. Return a cursor at this position.
+/// 
+/// Equivalent to `start_of_tie(start_of_tie(c).prev_global()?)`
 #[must_use]
-pub fn prev_non_tied(mut c: NoteCursor<'_>) -> Option<NoteCursor<'_>> {
+pub fn prev_non_tied(c: NoteCursor<'_>) -> Option<NoteCursor<'_>> {
+    let mut c = start_of_tie(c);
     loop {
         let n = c.prev_global()?;
         if !n.is_tied() {
@@ -94,6 +100,27 @@ pub fn prev_non_tied(mut c: NoteCursor<'_>) -> Option<NoteCursor<'_>> {
         c = n;
     }
 }
+
+/// Returns the start of the tie of `c` is tied, or returns `c` itself.
+#[must_use]
+pub fn start_of_tie(c: NoteCursor<'_>) -> NoteCursor<'_> {
+    let mut c = c;
+    while c.is_tied() && let Some(prev) = c.prev_global() {
+        c = prev;
+    }
+    c
+}
+
+/// Returns the end of the tie of `c` is tied, or returns `c` itself.
+#[must_use]
+pub fn end_of_tie(c: NoteCursor<'_>) -> NoteCursor<'_> {
+    let mut c = c;
+    while let Some(next) = c.next_global() && next.is_tied() {
+        c = next;
+    }
+    c
+}
+
 
 #[must_use]
 pub fn prev_different(mut c: NoteCursor<'_>) -> Option<NoteCursor<'_>> {

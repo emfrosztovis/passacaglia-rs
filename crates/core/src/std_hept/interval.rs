@@ -28,7 +28,7 @@ const ORDINALS: [&str; 13] = [
 ];
 
 fn get_multiplier_adverb(n: Rational, word: &str) -> String {
-    debug_assert!(*n.numer() != 0);
+    assert!(*n.numer() != 0);
     if *n.numer() == 1 {
         return word.to_string();
     }
@@ -39,7 +39,7 @@ fn get_multiplier_adverb(n: Rational, word: &str) -> String {
 }
 
 fn get_multiplier(n: Rational, word: &str) -> String {
-    debug_assert!(*n.numer() != 0);
+    assert!(*n.numer() != 0);
     if *n.numer() == 1 {
         return word.to_string();
     }

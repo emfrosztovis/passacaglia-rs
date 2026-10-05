@@ -47,8 +47,8 @@ impl std::hash::Hash for Chord {
 
 impl Chord {
     fn new(bass: Pitch, intervals: Rc<[Interval]>, tones: Rc<[Pitch]>, position: usize) -> Chord {
-        debug_assert!(position <= intervals.len());
-        debug_assert!(position < tones.len());
+        assert!(position <= intervals.len());
+        assert!(position < tones.len());
         debug_assert_eq!(bass, tones[0]);
         Chord {
             bass,
@@ -73,7 +73,7 @@ impl Chord {
     /// `ps` must be sorted from lowest to highest.
     #[must_use]
     pub fn from_pitches(ps: &[Pitch], position: usize) -> Chord {
-        debug_assert!(!ps.is_empty());
+        assert!(!ps.is_empty());
         let bass = ps[0].with_period(0);
         let mut ints = Vec::new();
         let mut tones = vec![bass];
@@ -88,7 +88,7 @@ impl Chord {
     /// Construct a chord from the intervals between each tone.
     #[must_use]
     pub fn from_intervals_stacking(ints: &[Interval], position: usize, bass: Pitch) -> Chord {
-        debug_assert!(!ints.is_empty());
+        assert!(!ints.is_empty());
         let mut tones = vec![bass];
         let mut tone = bass;
         for int in ints {
@@ -103,7 +103,7 @@ impl Chord {
     /// `ints` must be simple intervals and sorted from smallest to largest.
     #[must_use]
     pub fn from_intervals(ints: &[Interval], position: usize, bass: Pitch) -> Chord {
-        debug_assert!(!ints.is_empty());
+        assert!(!ints.is_empty());
         let tones: Vec<Pitch> = std::iter::once(bass)
             .chain(ints.iter().map(|int| bass.add(int)))
             .collect();
@@ -146,7 +146,7 @@ impl Chord {
         if n == self.position {
             return self.clone();
         }
-        debug_assert!(n <= self.intervals.len());
+        assert!(n <= self.intervals.len());
         let rotated = passacaglia_common::rotate_array(&self.tones, (n as i64) - (self.position as i64));
         Chord::from_pitches(&rotated, n).with_label(self.label.clone())
     }

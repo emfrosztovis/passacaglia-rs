@@ -1,8 +1,9 @@
 use std::rc::Rc;
 
-use num_traits::Signed;
+use num_traits::{Signed, Zero};
 use passacaglia_common::rational;
 
+use crate::Candidates;
 use crate::context::CandidateRule;
 use crate::rules::utils::note_pitch;
 use crate::voice::NonHarmonicType;
@@ -24,8 +25,12 @@ pub fn enforce_neighbor_tones() -> CandidateRule {
 
 #[must_use]
 pub fn make_neighbor_tone() -> CandidateRule {
-    Rc::new(move |_ctx, _s, cur, c, _ty| {
+    Rc::new(move |ctx, _s, cur, c, _ty| {
         let mut c = c.expect("candidates initialized");
+        if cur.time().is_zero() || cur.time() * rational(2) == ctx.parameters.measure_length {
+            // can't occur on downbeats
+            return Candidates::new();
+        }
         if let Some((p1, prev)) = note_pitch(cur.prev_global())
             && p1.non_harmonic.is_none()
         {
