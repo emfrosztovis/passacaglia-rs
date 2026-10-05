@@ -15,7 +15,7 @@ export interface TreeNodeInfo {
   isStart: boolean;
   onSolutionPath: boolean;
   bestPriority: number | null;
-  maxDepth: number;
+  maxMeasureIndex: number;
   subtreeSize: number;
 }
 

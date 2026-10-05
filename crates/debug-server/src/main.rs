@@ -10,14 +10,16 @@
 //! The frontend is a separate Vite project under `debug-ui/`; its dev server
 //! proxies `/events` and `/result.mxl` here.
 
-use std::collections::{HashMap, HashSet};
+mod tree;
+
+use std::collections::HashMap;
 use std::convert::Infallible;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use axum::{
     Router,
-    extract::{Path, State},
+    extract::State,
     http::{StatusCode, header},
     response::{
         IntoResponse,
@@ -25,6 +27,7 @@ use axum::{
     },
     routing::get,
 };
+use tree::{serve_tree_queries, tree_meta, tree_node, tree_score, TreeQuery};
 use futures_util::{Stream, StreamExt, stream};
 #[allow(unused_imports)]
 use passacaglia_macros::{std_hept_interval as interval, std_hept_pitch as pitch};
@@ -39,7 +42,7 @@ use passacaglia_musicxml::ToMxl;
 
 #[allow(unused_imports)]
 use passacaglia_species_counterpoint::{
-    CounterpointContext, CounterpointScoreBuilder, CounterpointSolver, CounterpointSolverProgress, CounterpointSolverRewardStrategy, MelodicSettings, NodeKind, NonHarmonicType, Parameters, Score, SearchNode, define_imitation, imitation, rules, species1, species3, species5,
+    CounterpointContext, CounterpointScoreBuilder, CounterpointSolver, CounterpointSolverProgress, CounterpointSolverRewardStrategy, MelodicSettings, NonHarmonicType, Parameters, Score, SearchNode, define_imitation, imitation, rules, species1, species3, species5,
 };
 
 /// A solver event that crosses the thread boundary. Every variant is `Send`.
@@ -91,26 +94,13 @@ struct SharedState {
     latest_progress: Mutex<Option<CounterpointSolverProgress>>,
 }
 
-/// A query for search-tree data, dispatched from an HTTP handler to the solver
-/// thread (which owns the `Rc`-based tree and cannot share it directly).
-enum TreeQueryKind {
-    Meta,
-    Node { id: usize },
-    Score { id: usize },
-}
-
-struct TreeQuery {
-    kind: TreeQueryKind,
-    reply: tokio::sync::oneshot::Sender<serde_json::Value>,
-}
-
 /// Shared HTTP state: the broadcast sender for live `/events` subscribers plus
 /// the mutable solver snapshot and the channel used to query the search tree.
 #[derive(Clone)]
 struct AppState {
     tx: broadcast::Sender<ServerEvent>,
     shared: Arc<SharedState>,
-    tree_tx: std::sync::mpsc::Sender<TreeQuery>,
+    pub(crate) tree_tx: std::sync::mpsc::Sender<TreeQuery>,
 }
 
 /// Stream solver events to an SSE subscriber. A snapshot (latest progress, then
@@ -181,126 +171,6 @@ async fn result_mxl(State(state): State<AppState>) -> impl IntoResponse {
         .into_response()
 }
 
-/// Send a search-tree query to the solver thread and await its JSON reply.
-async fn tree_query(
-    tx: &std::sync::mpsc::Sender<TreeQuery>,
-    kind: TreeQueryKind,
-) -> serde_json::Value {
-    let (reply_tx, reply_rx) = tokio::sync::oneshot::channel();
-    if tx.send(TreeQuery { kind, reply: reply_tx }).is_err() {
-        return json!({ "error": "solver thread unavailable" });
-    }
-    reply_rx
-        .await
-        .unwrap_or_else(|_| json!({ "error": "solver thread dropped" }))
-}
-
-fn json_response(json: &serde_json::Value) -> axum::response::Response {
-    ([(header::CONTENT_TYPE, "application/json")], json.to_string()).into_response()
-}
-
-/// `GET /tree` — search-tree metadata: node count, root id, goal id and the id
-/// path (root → goal) of the accepted solution.
-async fn tree_meta(State(state): State<AppState>) -> impl IntoResponse {
-    json_response(&tree_query(&state.tree_tx, TreeQueryKind::Meta).await)
-}
-
-/// `GET /tree/node/{id}` — a node's attributes plus the attributes of its
-/// children (so the frontend can lazily expand one node at a time).
-async fn tree_node(State(state): State<AppState>, Path(id): Path<usize>) -> impl IntoResponse {
-    json_response(&tree_query(&state.tree_tx, TreeQueryKind::Node { id }).await)
-}
-
-/// `GET /tree/score/{id}` — the `MusicXML` of the score snapshot at `id`.
-async fn tree_score(State(state): State<AppState>, Path(id): Path<usize>) -> impl IntoResponse {
-    json_response(&tree_query(&state.tree_tx, TreeQueryKind::Score { id }).await)
-}
-
-fn kind_str(kind: NodeKind) -> &'static str {
-    match kind {
-        NodeKind::Initial => "initial",
-        NodeKind::Harmony => "harmony",
-        NodeKind::Note => "note",
-    }
-}
-
-/// Reconstruct the root → goal path by walking parent pointers backwards.
-fn solution_path(nodes: &[SearchNode], goal: Option<usize>) -> Vec<usize> {
-    let Some(mut id) = goal else {
-        return Vec::new();
-    };
-    let mut path = vec![id];
-    while let Some(node) = nodes.get(id)
-        && let Some(parent) = node.parent
-    {
-        path.push(parent);
-        id = parent;
-    }
-    path.reverse();
-    path
-}
-
-/// Aggregate per-node subtree statistics used to rank "untaken" branches:
-/// `best_priority` (lowest search priority seen in the subtree), `max_depth`
-/// (furthest measure reached) and `subtree_size` (number of nodes).
-///
-/// Children always carry a higher `id` than their parent, so a single reverse
-/// pass accumulates the children's statistics before the parent's.
-fn subtree_stats(
-    nodes: &[SearchNode],
-    reward: f64,
-) -> (Vec<f64>, Vec<usize>, Vec<usize>) {
-    let n = nodes.len();
-    let mut best_priority = vec![0.0_f64; n];
-    let mut max_depth = vec![0_usize; n];
-    let mut subtree_size = vec![1_usize; n];
-    for i in (0..n).rev() {
-        let node = &nodes[i];
-        let mut bp = node.cost - reward * node.n_step;
-        let mut md = node.measure_index;
-        let mut size = 1_usize;
-        for &child in &node.children {
-            bp = bp.min(best_priority[child]);
-            md = md.max(max_depth[child]);
-            size += subtree_size[child];
-        }
-        best_priority[i] = bp;
-        max_depth[i] = md;
-        subtree_size[i] = size;
-    }
-    (best_priority, max_depth, subtree_size)
-}
-
-fn node_json(
-    nodes: &[SearchNode],
-    id: usize,
-    start: usize,
-    on_solution: &HashSet<usize>,
-    best_priority: &[f64],
-    max_depth: &[usize],
-    subtree_size: &[usize],
-) -> serde_json::Value {
-    let n = &nodes[id];
-    json!({
-        "id": n.id,
-        "parent": n.parent,
-        "measureIndex": n.measure_index,
-        "voiceIndex": n.voice_index,
-        "kind": kind_str(n.kind),
-        "nStep": n.n_step,
-        "cost": n.cost,
-        "thisCost": n.this_cost,
-        "debug": n.debug,
-        "isGoal": n.is_goal,
-        "nExpanded": n.n_expanded,
-        "isStart": n.id == start,
-        "onSolutionPath": on_solution.contains(&n.id),
-        "bestPriority": best_priority[n.id],
-        "maxDepth": max_depth[n.id],
-        "subtreeSize": subtree_size[n.id],
-    })
-}
-
 /// Serialize the playable content of a solved score: one entry per voice with
 /// per-note MIDI pitch, start (whole-note units), duration, and a tie flag.
 /// Rests carry `"pitch": null`. This mirrors the data the TS debug-ui handed to
@@ -348,8 +218,8 @@ fn run_solver(
     );
 
     ctx.harmony_rules = vec![
-        // rules::enforce_functional_progression_major(),
-        rules::enforce_functional_progression_minor(),
+        rules::enforce_functional_progression_major(),
+        // rules::enforce_functional_progression_minor(),
         rules::enforce_valid_chords(),
     ];
 
@@ -363,7 +233,7 @@ fn run_solver(
 
     ctx.candidate_rules_before = vec![
         rules::enforce_scale_tones(),
-        rules::enforce_minor(pitch!("a")),
+        // rules::enforce_minor(pitch!("a")),
         rules::enforce_stepwise_around_short_notes(),
         rules::enforce_passing_tones(),
         rules::enforce_neighbor_tones(),
@@ -403,25 +273,13 @@ fn run_solver(
     let ctx = Rc::new(ctx);
 
     let score = CounterpointScoreBuilder::new(ctx.clone())
-        // .soprano(&species5())
-        // .alto(&define_imitation(
-        //     MelodicSettings::unrestricted(),
-        //     0, 1, |x| {
-        //         vec![
-        //             x.add(&interval!("-d5")),
-        //             x.add(&interval!("-P5")),
-        //             x.add(&interval!("-A5")),
-        //         ]
-        //     }))
-        // .bass(&species5())
-
         .soprano(&species5())
         .alto(&species5())
-        // .tenor(&species1())
-        .bass(&species1())
+        .tenor(&species5())
+        .bass(&species5())
 
-        // .build(&scales::major(pitch!("c")), None)
-        .build(&scales::minor(pitch!("a")), None)
+        .build(&scales::major(pitch!("c")), None)
+        // .build(&scales::minor(pitch!("a")), None)
     ;
 
     let mut solver = CounterpointSolver::new(ctx.clone());
@@ -435,11 +293,12 @@ fn run_solver(
     });
 
     solver.report_interval = 1000;
-    solver.batch = 100;
+    solver.batch = 50;
     solver.remove_old = 6;
 
-    let reward = 30.0;
-    let solution = solver.run(&score, CounterpointSolverRewardStrategy::Constant { value: reward });
+    let reward = 5.0;
+    let solution = solver.run(&score, 
+        CounterpointSolverRewardStrategy::Constant { value: reward  });
 
     if let Some(s) = solution {
         let mxl = s.to_mxl();
@@ -471,73 +330,6 @@ fn run_solver(
         target_measures,
         reward,
     );
-}
-
-/// Answer lazy `/tree` queries from the HTTP handlers for as long as the solver
-/// thread lives.
-fn serve_tree_queries(
-    tree_rx: std::sync::mpsc::Receiver<TreeQuery>,
-    search_nodes: &[SearchNode],
-    start_id: usize,
-    goal_id: Option<usize>,
-    target_measures: usize,
-    reward: f64,
-) {
-    let solution_path = solution_path(search_nodes, goal_id);
-    let on_solution: HashSet<usize> = solution_path.iter().copied().collect();
-    let (best_priority, max_depth, subtree_size) = subtree_stats(search_nodes, reward);
-
-    for query in tree_rx {
-        let reply = match query.kind {
-            TreeQueryKind::Meta => json!({
-                "nodeCount": search_nodes.len(),
-                "start": start_id,
-                "goal": goal_id,
-                "solutionPath": solution_path,
-                "targetMeasures": target_measures,
-            }),
-            TreeQueryKind::Node { id } => {
-                if id < search_nodes.len() {
-                    let mut obj = node_json(
-                        search_nodes,
-                        id,
-                        start_id,
-                        &on_solution,
-                        &best_priority,
-                        &max_depth,
-                        &subtree_size,
-                    );
-                    let children = search_nodes[id]
-                        .children
-                        .iter()
-                        .map(|&c| {
-                            node_json(
-                                search_nodes,
-                                c,
-                                start_id,
-                                &on_solution,
-                                &best_priority,
-                                &max_depth,
-                                &subtree_size,
-                            )
-                        })
-                        .collect::<Vec<_>>();
-                    obj["children"] = json!(children);
-                    obj
-                } else {
-                    json!({ "error": "node not found" })
-                }
-            }
-            TreeQueryKind::Score { id } => {
-                if id < search_nodes.len() {
-                    json!({ "mxl": search_nodes[id].score.to_mxl() })
-                } else {
-                    json!({ "error": "node not found" })
-                }
-            }
-        };
-        let _ = query.reply.send(reply);
-    }
 }
 
 #[tokio::main]

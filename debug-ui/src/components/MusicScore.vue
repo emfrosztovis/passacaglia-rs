@@ -35,15 +35,21 @@ onMounted(() => {
         autoResize: props.autoResize
     });
     if (props.file)
-        osmd.load(props.file).then(() => osmd!.render());
+        void render();
   }
 });
 
-watch(props, (x) => {
-    if (osmd) {
-        osmd.load(x.file).then(() => osmd!.render());
-    }
-})
+watch(props, () => {
+  void render();
+});
+
+async function render() {
+  if (!osmd) return;
+  await osmd.load(props.file);
+  osmd.zoom = 0.75;
+  osmd.render();
+}
+
 </script>
 
 <style lang="css" scoped>

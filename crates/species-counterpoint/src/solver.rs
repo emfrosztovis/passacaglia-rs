@@ -45,17 +45,18 @@ enum Target {
 #[derive(Clone)]
 #[allow(dead_code)]
 struct Node {
+    pub depth: usize,
     pub score: Rc<Score>,
     pub score_hash: u64,
-    ctx: Rc<CounterpointContext>,
     pub measure_index: usize,
     pub voice_index: Option<usize>,
     pub kind: NodeKind,
-    pub n_step: f64,
+    pub position: f64,
     pub cost: f64,
     pub this_cost: f64,
     pub debug: String,
     pub is_goal: bool,
+    ctx: Rc<CounterpointContext>,
     target: Option<Target>,
     id: usize,
     parent: Option<usize>,
@@ -69,6 +70,7 @@ struct Node {
 #[derive(Clone)]
 pub struct SearchNode {
     pub id: usize,
+    pub depth: usize,
     pub parent: Option<usize>,
     pub children: Vec<usize>,
     pub score: Rc<Score>,
@@ -117,12 +119,13 @@ fn find_writable(score: &Score, ctx: &CounterpointContext, measure_index: usize)
 
 impl Node {
     fn new(
+        depth: usize,
         score: Rc<Score>,
         ctx: Rc<CounterpointContext>,
         measure_index: usize,
         voice_index: Option<usize>,
         kind: NodeKind,
-        n_step: f64,
+        position: f64,
         cost: f64,
         this_cost: f64,
         debug: String,
@@ -139,13 +142,14 @@ impl Node {
         let is_goal = target.is_none();
         let score_hash = score_hash(&score);
         Node {
+            depth,
             score,
             score_hash,
             ctx,
             measure_index: mi,
             voice_index,
             kind,
-            n_step,
+            position,
             cost,
             this_cost,
             debug,
@@ -159,13 +163,14 @@ impl Node {
     fn to_search_node(&self) -> SearchNode {
         SearchNode {
             id: self.id,
+            depth: self.depth,
             parent: self.parent,
             children: Vec::new(),
             score: self.score.clone(),
             measure_index: self.measure_index,
             voice_index: self.voice_index,
             kind: self.kind,
-            n_step: self.n_step,
+            n_step: self.position,
             cost: self.cost,
             this_cost: self.this_cost,
             debug: self.debug.clone(),
@@ -188,12 +193,13 @@ impl Node {
                         let new_harmony = self.score.harmony.replace_chord(self.measure_index, Some(chord.clone()));
                         let new_score = self.score.replace_harmony(new_harmony);
                         Node::new(
+                            self.depth + 1,
                             Rc::new(new_score),
                             self.ctx.clone(),
                             self.measure_index,
                             None,
                             NodeKind::Harmony,
-                            self.n_step,
+                            self.position,
                             self.cost * POWER + cost,
                             *cost,
                             String::new(),
@@ -223,12 +229,13 @@ impl Node {
                             return None;
                         }
                         Some(Node::new(
+                            self.depth + 1,
                             Rc::new(new_score),
                             self.ctx.clone(),
                             self.measure_index,
                             Some(voice_index),
                             NodeKind::Note,
-                            self.n_step + rational_value(step.advanced),
+                            self.position + rational_value(step.advanced),
                             self.cost * POWER.powf(rational_value(step.advanced)) + step.cost,
                             step.cost,
                             step.debug,
@@ -353,6 +360,7 @@ impl CounterpointSolver {
         let mut search_nodes: Vec<SearchNode> = Vec::new();
 
         let mut start = Node::new(
+            0,
             Rc::new(s.clone()),
             self.ctx.clone(),
             0,
@@ -372,7 +380,7 @@ impl CounterpointSolver {
             .or_default()
             .push((start_score.clone(), None));
         open.push(HeapEntry {
-            priority: start.cost - f * start.n_step,
+            priority: start.cost,
             seq: 0,
             node: start,
         });
@@ -447,7 +455,7 @@ impl CounterpointSolver {
                 n_node += 1;
             }
             for n in new_nodes {
-                let priority = n.cost - f * n.n_step;
+                let priority = n.cost - f * (n.depth as f64);
                 open.push(HeapEntry { priority, seq, node: n });
                 seq += 1;
             }

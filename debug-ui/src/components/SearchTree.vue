@@ -6,6 +6,7 @@ import {
   type TreeMeta,
   type TreeNodeInfo,
 } from '../treeClient';
+import { layoutTree, type LayoutEdge } from '../treeLayout';
 
 defineOptions({
   name: 'SearchTree',
@@ -18,47 +19,6 @@ type TreeViewNode = TreeNodeInfo & {
   loaded: boolean;
 };
 
-interface Placed {
-  id: number;
-  x: number;
-  y: number;
-  depth: number;
-  node: TreeViewNode;
-}
-
-interface Edge {
-  from: number;
-  to: number;
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  onPath: boolean;
-}
-
-// Reingold-Tilford node (internal nodes only; leaves are fanned separately).
-interface RTNode {
-  id: number;
-  children: RTNode[];
-  leafIds: number[];
-  parent: RTNode | null;
-  i: number;
-  z: number;
-  m: number;
-  s: number;
-  c: number;
-  t?: RTNode;
-  a?: RTNode;
-  x: number;
-  depth: number;
-}
-
-const PAD = 24;
-const LEVEL_GAP = 75;
-const SIBLING_GAP = 100;
-const FAN_RADIUS = 50;
-const FAN_SPREAD = Math.PI * 0.6;
-const RT_GAP = 1;
 const MIN_ZOOM = 0.05;
 const MAX_ZOOM = 20;
 
@@ -102,7 +62,7 @@ function infoOf(n: TreeNodeInfo): TreeNodeInfo {
     isStart: n.isStart,
     onSolutionPath: n.onSolutionPath,
     bestPriority: n.bestPriority,
-    maxDepth: n.maxDepth,
+    maxMeasureIndex: n.maxMeasureIndex,
     subtreeSize: n.subtreeSize,
   };
 }
@@ -113,7 +73,7 @@ function upsert(info: TreeNodeInfo) {
     Object.assign(existing, info);
     return;
   }
-  nodes.set(info.id, { ...infoOf(info), children: [], loaded: false });
+  nodes.set(info.id, { ...info, children: [], loaded: false });
 }
 
 async function expand(id: number) {
@@ -127,13 +87,25 @@ async function expand(id: number) {
     if (existing) {
       Object.assign(existing, infoOf(data));
     } else {
-      nodes.set(id, { ...infoOf(data), children: [], loaded: false });
+      nodes.set(id, { ...data, children: [], loaded: false });
     }
     const node = nodes.get(id)!;
     node.children = data.children.map((c) => c.id);
     node.loaded = true;
     for (const child of data.children) {
       upsert(child);
+    }
+    const expandable = data.children.filter((x) => x.nExpanded > 0);
+    if (expandable.length == 1) {
+      await expand(expandable[0].id);
+    } else {
+      const total = meta.value?.targetMeasures ?? 1;
+      const threshold = (meta.value?.nodeCount ?? Infinity) * 0.01;
+      const bigChildren = data.children.filter(
+        (x) => x.maxMeasureIndex == total || x.subtreeSize > threshold);
+      for (const bigChild of bigChildren) {
+        await expand(bigChild.id);
+      }
     }
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
@@ -193,231 +165,17 @@ async function init() {
   }
 }
 
-// --- Reingold-Tilford layout (Buchheim et al.) -------------------------------
-
-function buildRT(id: number, parent: RTNode | null, depth: number): RTNode {
-  const view = nodes.get(id)!;
-  const n: RTNode = {
-    id,
-    children: [],
-    leafIds: [],
-    parent,
-    i: 0,
-    z: 0,
-    m: 0,
-    s: 0,
-    c: 0,
-    t: undefined,
-    a: undefined,
-    x: 0,
-    depth,
-  };
-  for (const cid of view.children) {
-    const child = nodes.get(cid)!;
-    if (child.children.length > 0) {
-      n.children.push(buildRT(cid, n, depth + 1));
-    } else {
-      n.leafIds.push(cid);
-    }
-  }
-  n.children.forEach((c, idx) => {
-    c.i = idx;
-  });
-  return n;
-}
-
-function rtFirstWalk(v: RTNode) {
-  for (const c of v.children) {
-    rtFirstWalk(c);
-  }
-  const siblings = v.parent ? v.parent.children : null;
-  const w = v.i > 0 && siblings ? siblings[v.i - 1] : null;
-  if (v.children.length > 0) {
-    rtExecuteShifts(v);
-    const mid = (v.children[0].z + v.children[v.children.length - 1].z) / 2;
-    if (w) {
-      v.z = w.z + RT_GAP;
-      v.m = v.z - mid;
-    } else {
-      v.z = mid;
-    }
-  } else if (w) {
-    v.z = w.z + RT_GAP;
-  }
-  if (v.parent) {
-    v.parent.a = rtApportion(v, w, v.parent.a ?? v.parent.children[0]);
-  }
-}
-
-function rtSecondWalk(v: RTNode, m: number) {
-  v.x = v.z + m;
-  v.m += m;
-  for (const c of v.children) {
-    rtSecondWalk(c, v.m);
-  }
-}
-
-function rtApportion(v: RTNode, w: RTNode | null, ancestor: RTNode): RTNode {
-  if (w) {
-    let vip = v;
-    let vop = v;
-    let vim = w;
-    let vom = v.parent!.children[0];
-    let sip = v.m;
-    let sop = v.m;
-    let sim = w.m;
-    let som = vom.m;
-    for (;;) {
-      vim = rtNextRight(vim)!;
-      vip = rtNextLeft(vip)!;
-      if (!vim || !vip) {
-        break;
-      }
-      vom = rtNextLeft(vom)!;
-      vop = rtNextRight(vop)!;
-      vop.a = v;
-      const shift = vim.z + sim - (vip.z + sip) + RT_GAP;
-      if (shift > 0) {
-        rtMoveSubtree(rtNextAncestor(vim, v, ancestor), v, shift);
-        sip += shift;
-        sop += shift;
-      }
-      sim += vim.m;
-      sip += vip.m;
-      som += vom.m;
-      sop += vop.m;
-    }
-    if (vim && !rtNextRight(vop)) {
-      vop.t = vim;
-      vop.m += sim - sop;
-    }
-    if (vip && !rtNextLeft(vom)) {
-      vom.t = vip;
-      vom.m += sip - som;
-      ancestor = v;
-    }
-  }
-  return ancestor;
-}
-
-function rtMoveSubtree(wm: RTNode, wp: RTNode, shift: number) {
-  const change = shift / (wp.i - wm.i);
-  wp.c -= change;
-  wp.s += shift;
-  wm.c += change;
-  wp.z += shift;
-  wp.m += shift;
-}
-
-function rtExecuteShifts(v: RTNode) {
-  let shift = 0;
-  let change = 0;
-  for (let i = v.children.length - 1; i >= 0; i--) {
-    const w = v.children[i];
-    w.z += shift;
-    w.m += shift;
-    shift += w.s + (change += w.c);
-  }
-}
-
-function rtNextAncestor(vim: RTNode, v: RTNode, ancestor: RTNode): RTNode {
-  return vim.a && vim.a.parent === v.parent ? vim.a : ancestor;
-}
-
-function rtNextLeft(v: RTNode): RTNode | undefined {
-  return v.children.length > 0 ? v.children[0] : v.t;
-}
-
-function rtNextRight(v: RTNode): RTNode | undefined {
-  return v.children.length > 0 ? v.children[v.children.length - 1] : v.t;
-}
-
-// --- layout ----------------------------------------------------------------
-
 const layout = computed(() => {
   const m = meta.value;
   if (!m || !nodes.has(m.start)) {
     return { placed: [], edges: [], width: 0, height: 0 };
   }
-
-  const root = buildRT(m.start, null, 0);
-  rtFirstWalk(root);
-  rtSecondWalk(root, 0);
-  const rootX = root.x;
-
-  const placed: Placed[] = [];
-
-  const place = (n: RTNode) => {
-    const x = n.depth * LEVEL_GAP;
-    const y = (n.x - rootX) * SIBLING_GAP;
-    placed.push({ id: n.id, x, y, depth: n.depth, node: nodes.get(n.id)! });
-
-    for (const c of n.children) {
-      place(c);
-    }
-
-    const total = n.leafIds.length;
-    const angleOne = total <= 1 ? 0 : FAN_SPREAD / (total - 1);
-    n.leafIds.forEach((lid, idx) => {
-      const view = nodes.get(lid)!;
-      let lx: number;
-      let ly: number;
-      if (view.onSolutionPath && view.isGoal) {
-        lx = (n.depth + 1) * LEVEL_GAP;
-        ly = y;
-      } else {
-        const angle = angleOne * idx - angleOne * ((total - 1) / 2);
-        lx = x + Math.cos(angle) * FAN_RADIUS;
-        ly = y - Math.sin(angle) * FAN_RADIUS;
-      }
-      placed.push({ id: lid, x: lx, y: ly, depth: n.depth + 1, node: view });
-    });
-  };
-
-  place(root);
-
-  // Normalize so the bounding box starts at PAD.
-  let minX = Number.POSITIVE_INFINITY;
-  let minY = Number.POSITIVE_INFINITY;
-  let maxX = Number.NEGATIVE_INFINITY;
-  let maxY = Number.NEGATIVE_INFINITY;
-  for (const p of placed) {
-    minX = Math.min(minX, p.x);
-    minY = Math.min(minY, p.y);
-    maxX = Math.max(maxX, p.x);
-    maxY = Math.max(maxY, p.y);
-  }
-  const shiftX = PAD - minX;
-  const shiftY = PAD - minY;
-  for (const p of placed) {
-    p.x += shiftX;
-    p.y += shiftY;
-  }
-
-  const pos = new Map(placed.map((p) => [p.id, p] as const));
-  const edges: Edge[] = [];
-  for (const p of placed) {
-    for (const cid of p.node.children) {
-      const c = pos.get(cid);
-      if (c) {
-        edges.push({
-          from: p.id,
-          to: cid,
-          x1: p.x,
-          y1: p.y,
-          x2: c.x,
-          y2: c.y,
-          onPath: p.node.onSolutionPath && c.node.onSolutionPath,
-        });
-      }
-    }
-  }
-
+  const l = layoutTree(nodes, m.start);
   return {
-    placed,
-    edges,
-    width: maxX + shiftX + PAD,
-    height: maxY + shiftY + PAD,
+    placed: l.placed.map((p) => ({ ...p, node: nodes.get(p.id)! })),
+    edges: l.edges,
+    width: l.width,
+    height: l.height,
   };
 });
 
@@ -435,21 +193,30 @@ function fillColor(node: TreeViewNode): string {
   if (node.nExpanded === 0) {
     return '#e74c3c';
   }
-  return '#555';
+  return importanceColor(node);
 }
 
 function importanceColor(node: TreeViewNode): string {
   const total = meta.value?.targetMeasures ?? 1;
-  const p = Math.max(0, Math.min(1, node.maxDepth / total));
-  const hue = 210 - p * 180;
-  return `hsl(${hue}, 70%, ${28 + p * 34}%)`;
+  const totalSize = meta.value?.nodeCount ?? 1;
+  const p = Math.max(0, Math.min(1, node.maxMeasureIndex / total));
+  const hue = 200 - p * 180;
+  const sat = 10 + Math.min(80, node.subtreeSize / totalSize * 1000);
+  return `hsl(${hue}, ${sat}%, ${30 + p * 30}%)`;
 }
 
 function importanceRadius(node: TreeViewNode): number {
-  return 3 + Math.min(7, Math.log2(node.subtreeSize + 1) * 0.9);
+  const totalSize = meta.value?.nodeCount ?? 1;
+  return 1 + Math.min(7, node.subtreeSize / totalSize * 100 * 5);
 }
 
-function pathD(e: Edge): string {
+function importanceSideLength(node: TreeViewNode): number {
+  if (node.isGoal) return 10;
+  if (node.nExpanded === 0) return 2;
+  return 10 + Math.min(10, Math.log2(node.subtreeSize + 1) * 0.5);
+}
+
+function pathD(e: LayoutEdge): string {
   const mx = (e.x1 + e.x2) / 2;
   return `M ${e.x1} ${e.y1} C ${mx} ${e.y1}, ${mx} ${e.y2}, ${e.x2} ${e.y2}`;
 }
@@ -472,7 +239,7 @@ const detailRows = computed<[string, string | number][]>(() => {
     ['nStep', fmt(n.nStep, 1)],
     ['expanded', n.nExpanded],
     ['subtree', n.subtreeSize],
-    ['maxDepth', n.maxDepth],
+    ['maxMeasureIndex', n.maxMeasureIndex],
     ['bestPriority', fmt(n.bestPriority)],
     ['debug', n.debug || '—'],
   ];
@@ -491,7 +258,7 @@ function onWheel(e: WheelEvent) {
   const rect = vp.getBoundingClientRect();
   const px = e.clientX - rect.left;
   const py = e.clientY - rect.top;
-  const factor = e.deltaY < 0 ? 1.1 : 0.9;
+  const factor = e.deltaY < 0 ? 1.03 : 0.97;
   const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom.value * factor));
   const k = newZoom / zoom.value;
   panX.value = px - (px - panX.value) * k;
@@ -634,10 +401,10 @@ onUnmounted(() => {
             </template>
             <template v-else>
               <rect
-                x="-5"
-                y="-5"
-                width="10"
-                height="10"
+                :x="-importanceSideLength(p.node) / 2"
+                :y="-importanceSideLength(p.node) / 2"
+                :width="importanceSideLength(p.node)"
+                :height="importanceSideLength(p.node)"
                 :fill="fillColor(p.node)"
                 :stroke="p.node.onSolutionPath ? '#f1c40f' : 'none'"
                 :stroke-width="1.5"
@@ -684,7 +451,7 @@ onUnmounted(() => {
   gap: 1em;
   padding: 0.35em 0.75em;
   font-size: 0.8em;
-  color: #ccc;
+  color: #111;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   flex-wrap: wrap;
 }
