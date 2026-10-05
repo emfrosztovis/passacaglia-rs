@@ -33,22 +33,33 @@ impl NoteSchema {
     }
 }
 
-/// A species measure schema: a name, a note generator, and an optional
-/// condition.
+/// Returns the [`NoteSchema`]s that are possible for the note at the position
+/// that follows the already-`chosen` schemas, in a measure of the given length.
+///
+/// The returned list is a set of alternatives: each one leads to a distinct
+/// candidate measure. Returning an empty list means the measure is complete.
+pub type NoteSchemaNext = dyn Fn(Rational, &[NoteSchema]) -> Vec<NoteSchema>;
+
+/// A species measure schema: a name, a positional note generator, and an
+/// optional condition.
 pub struct MeasureSchema {
     pub name: String,
-    pub notes: Box<dyn Fn(Rational) -> Vec<NoteSchema>>,
+    pub next: Rc<NoteSchemaNext>,
     pub condition: Option<Box<dyn for<'a> Fn(MeasureCursor<'a>, &'a Score) -> bool>>,
     pub cost: f64,
 }
 
 /// A solver-aware species measure (stored inside a [`Measure`]).
+///
+/// `note_schema` holds the schemas chosen so far (the prefix). The note at the
+/// next position is obtained by calling `next` with this prefix.
 #[derive(Clone)]
 pub struct SpeciesMeasure {
     pub ctx: Rc<CounterpointContext>,
     pub melodic_context: MelodicContext,
     pub name: String,
     pub note_schema: Rc<[NoteSchema]>,
+    pub next: Rc<NoteSchemaNext>,
 }
 
 /// A transient measure that expands into concrete species measures.
@@ -60,10 +71,11 @@ pub struct FakeMeasure {
     pub p0: Pitch,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct FakeCandidate {
     pub name: String,
     pub note_schema: Rc<[NoteSchema]>,
+    pub next: Rc<NoteSchemaNext>,
     pub cost: f64,
 }
 
@@ -72,6 +84,7 @@ pub(crate) fn make_species_measure(
     ctx: Rc<CounterpointContext>,
     mc: MelodicContext,
     name: String,
+    next: Rc<NoteSchemaNext>,
     note_schema: Rc<[NoteSchema]>,
     mut notes: Vec<Note>,
 ) -> Measure {
@@ -87,6 +100,7 @@ pub(crate) fn make_species_measure(
             melodic_context: mc,
             name,
             note_schema,
+            next,
         }),
     }
 }
@@ -97,12 +111,56 @@ pub(crate) fn species_get_next_steps<'a>(
     s: &'a Score,
     c: MeasureCursor<'a>,
 ) -> Vec<Step> {
-    let note_idx = (0..measure.notes.len())
-        .find(|&i| {
-            measure.notes[i].pitch.is_none()
-                && matches!(sm.note_schema.get(i), Some(NoteSchema::Tone { .. }))
+    if let Some(note_idx) = (0..measure.notes.len()).find(|&i| {
+        measure.notes[i].pitch.is_none()
+            && matches!(sm.note_schema.get(i), Some(NoteSchema::Tone { .. }))
+    }) {
+        return fill_species_tone(measure, sm, note_idx, s, c);
+    }
+
+    // Every chosen position is complete. If the measure is not full yet, ask
+    // the schema for the schemas that are possible at the next position.
+    let ml = sm.ctx.parameters.measure_length;
+    let total = note_total(&measure.notes);
+    if total >= ml {
+        return Vec::new();
+    }
+
+    (sm.next)(ml, &sm.note_schema)
+        .into_iter()
+        .map(|option| {
+            let mut schema = sm.note_schema.to_vec();
+            let mut notes = measure.notes.to_vec();
+            notes.push(Note::new(option.duration(), None, None));
+            schema.push(option);
+            Step {
+                measure: Measure {
+                    notes: Rc::from(notes),
+                    duration: measure.duration,
+                    kind: MeasureKind::Species(SpeciesMeasure {
+                        ctx: sm.ctx.clone(),
+                        melodic_context: sm.melodic_context,
+                        name: sm.name.clone(),
+                        note_schema: Rc::from(schema),
+                        next: sm.next.clone(),
+                    }),
+                },
+                advanced: rational(0),
+                cost: 0.0,
+                debug: "extend_schema".to_string(),
+                score: None,
+            }
         })
-        .expect("species measure has a writable tone");
+        .collect()
+}
+
+fn fill_species_tone<'a>(
+    measure: &Measure,
+    sm: &SpeciesMeasure,
+    note_idx: usize,
+    s: &'a Score,
+    c: MeasureCursor<'a>,
+) -> Vec<Step> {
     let c_note = c.child(note_idx).expect("child cursor");
     let NoteSchema::Tone { harmonic, types, .. } = &sm.note_schema[note_idx] else {
         unreachable!("writable position is a tone schema")
@@ -120,6 +178,7 @@ pub(crate) fn species_get_next_steps<'a>(
                 melodic_context: update_melodic_context(sm.melodic_context, pitch),
                 name: sm.name.clone(),
                 note_schema: sm.note_schema.clone(),
+                next: sm.next.clone(),
             }),
         }
     };
@@ -137,6 +196,11 @@ pub(crate) fn species_get_next_steps<'a>(
     next
 }
 
+#[must_use]
+pub(crate) fn note_total(notes: &[Note]) -> Rational {
+    notes.iter().fold(rational(0), |acc, n| acc + n.duration)
+}
+
 pub(crate) fn fake_get_next_steps(fm: &FakeMeasure) -> Vec<Step> {
     fm.candidates
         .iter()
@@ -146,6 +210,7 @@ pub(crate) fn fake_get_next_steps(fm: &FakeMeasure) -> Vec<Step> {
                 fm.ctx.clone(),
                 fm.melodic_context,
                 fc.name.clone(),
+                fc.next.clone(),
                 fc.note_schema.clone(),
                 vec![first],
             );
@@ -166,62 +231,50 @@ pub(crate) fn species_make_new_measure<'a>(
     score: &'a Score,
     c: MeasureCursor<'a>,
 ) -> Vec<NewMeasure> {
+    let ml = cp.ctx.parameters.measure_length;
     let mc = c
         .prev_global()
         .map_or_else(empty_melodic_context, |p| p.melodic_context());
 
-    let available: Vec<(&MeasureSchema, Vec<NoteSchema>)> = schemas
-        .iter()
-        .filter(|s| s.condition.as_ref().is_none_or(|cond| cond(c, score)))
-        .map(|s| (s, (s.notes)(cp.ctx.parameters.measure_length)))
-        .collect();
-
-    let first_is_harmonic: Vec<(&MeasureSchema, &[NoteSchema])> = available
-        .iter()
-        .filter(|(_, n)| matches!(n.first(), Some(NoteSchema::Tone { harmonic: true, .. })))
-        .map(|(s, n)| (*s, n.as_slice()))
-        .collect();
-    let first_is_not_harmonic: Vec<(&MeasureSchema, &[NoteSchema])> = available
-        .iter()
-        .filter(|(_, n)| !matches!(n.first(), Some(NoteSchema::Tone { harmonic: true, .. })))
-        .map(|(s, n)| (*s, n.as_slice()))
-        .collect();
-
     let mut results = Vec::new();
-    for (s, n) in &first_is_not_harmonic {
-        results.push(NewMeasure {
-            measure: make_species_measure(
-                cp.ctx.clone(),
-                mc,
-                s.name.clone(),
-                Rc::from(n.to_vec()),
-                vec![],
-            ),
-            cost: s.cost,
-        });
+    let mut fake_candidates: Vec<FakeCandidate> = Vec::new();
+
+    for s in schemas {
+        if s.condition.as_ref().is_some_and(|cond| !cond(c, score)) {
+            continue;
+        }
+        for option in (s.next)(ml, &[]) {
+            if matches!(option, NoteSchema::Tone { harmonic: true, .. }) {
+                fake_candidates.push(FakeCandidate {
+                    name: s.name.clone(),
+                    note_schema: Rc::from(vec![option]),
+                    next: s.next.clone(),
+                    cost: s.cost,
+                });
+            } else {
+                results.push(NewMeasure {
+                    measure: make_species_measure(
+                        cp.ctx.clone(),
+                        mc,
+                        s.name.clone(),
+                        s.next.clone(),
+                        Rc::from(vec![option]),
+                        vec![],
+                    ),
+                    cost: s.cost,
+                });
+            }
+        }
     }
 
-    if !first_is_harmonic.is_empty() {
-        let fake_candidates: Rc<[FakeCandidate]> = Rc::from(
-            first_is_harmonic
-                .iter()
-                .map(|(s, n)| FakeCandidate {
-                    name: s.name.clone(),
-                    note_schema: Rc::from(n.to_vec()),
-                    cost: s.cost,
-                })
-                .collect::<Vec<_>>(),
-        );
+    if !fake_candidates.is_empty() {
+        let fake_candidates: Rc<[FakeCandidate]> = Rc::from(fake_candidates);
         let voice = c.container();
         let fake_cursor = voice.note_at(c.global_time()).expect("fake cursor exists");
         let create = move |_note: Note, p: Pitch| -> Measure {
             Measure {
-                notes: Rc::from(vec![Note::new(
-                    cp.ctx.parameters.measure_length,
-                    Some(p),
-                    None,
-                )]),
-                duration: cp.ctx.parameters.measure_length,
+                notes: Rc::from(vec![Note::new(ml, Some(p), None)]),
+                duration: ml,
                 kind: MeasureKind::Fake(FakeMeasure {
                     ctx: cp.ctx.clone(),
                     melodic_context: mc,
@@ -284,6 +337,23 @@ fn repeat_notes(n: f64, f: impl Fn() -> NoteSchema) -> Vec<NoteSchema> {
     (0..count).map(|_| f()).collect()
 }
 
+#[must_use]
+fn total_duration(chosen: &[NoteSchema]) -> Rational {
+    chosen.iter().fold(rational(0), |acc, n| acc + n.duration())
+}
+
+/// Adapts a `measure length -> full note schema` function into a positional
+/// [`NoteSchemaNext`] by looking up the note that follows the chosen prefix.
+fn fixed_schema(notes: impl Fn(Rational) -> Vec<NoteSchema> + 'static) -> Rc<NoteSchemaNext> {
+    Rc::new(move |ml, chosen| {
+        notes(ml)
+            .get(chosen.len())
+            .cloned()
+            .into_iter()
+            .collect()
+    })
+}
+
 fn define_species(m: MelodicSettings, schema: Vec<MeasureSchema>) -> VoiceConstructor {
     VoiceConstructor {
         melody_settings: m,
@@ -301,12 +371,16 @@ fn passing_neighbor() -> Vec<NonHarmonicType> {
 pub fn species1() -> VoiceConstructor {
     let schema = vec![MeasureSchema {
         name: "sp1".to_string(),
-        notes: Box::new(|ml| {
-            vec![NoteSchema::Tone {
-                harmonic: true,
-                types: None,
-                duration: ml,
-            }]
+        next: Rc::new(|ml, chosen| {
+            if chosen.is_empty() {
+                vec![NoteSchema::Tone {
+                    harmonic: true,
+                    types: None,
+                    duration: ml,
+                }]
+            } else {
+                Vec::new()
+            }
         }),
         condition: None,
         cost: 0.0,
@@ -329,36 +403,34 @@ pub fn species2() -> VoiceConstructor {
         MeasureSchema {
             name: "sp2.0".to_string(),
             condition: Some(Box::new(first)),
-            notes: Box::new(|ml| {
-                vec![
-                    NoteSchema::Skip {
-                        duration: ml / rational(2),
-                    },
-                    NoteSchema::Tone {
-                        harmonic: true,
-                        types: None,
-                        duration: ml / rational(2),
-                    },
-                ]
+            next: Rc::new(|ml, chosen| match chosen {
+                [] => vec![NoteSchema::Skip {
+                    duration: ml / rational(2),
+                }],
+                [_] => vec![NoteSchema::Tone {
+                    harmonic: true,
+                    types: None,
+                    duration: ml / rational(2),
+                }],
+                _ => Vec::new(),
             }),
             cost: 0.0,
         },
         MeasureSchema {
             name: "sp2.1".to_string(),
             condition: Some(Box::new(later)),
-            notes: Box::new(|ml| {
-                vec![
-                    NoteSchema::Tone {
-                        harmonic: true,
-                        types: None,
-                        duration: ml / rational(2),
-                    },
-                    NoteSchema::Tone {
-                        harmonic: true,
-                        types: Some(passing_neighbor()),
-                        duration: ml / rational(2),
-                    },
-                ]
+            next: Rc::new(|ml, chosen| match chosen {
+                [] => vec![NoteSchema::Tone {
+                    harmonic: true,
+                    types: None,
+                    duration: ml / rational(2),
+                }],
+                [_] => vec![NoteSchema::Tone {
+                    harmonic: true,
+                    types: Some(passing_neighbor()),
+                    duration: ml / rational(2),
+                }],
+                _ => Vec::new(),
             }),
             cost: 0.0,
         },
@@ -381,41 +453,39 @@ pub fn species3() -> VoiceConstructor {
         MeasureSchema {
             name: "sp3.0".to_string(),
             condition: Some(Box::new(first)),
-            notes: Box::new(|ml| {
-                let mut out = vec![
-                    NoteSchema::Skip {
-                        duration: rational(1),
-                    },
-                    NoteSchema::Tone {
-                        harmonic: true,
-                        types: None,
-                        duration: rational(1),
-                    },
-                ];
-                out.extend(repeat_notes(rational_value(ml) - 2.0, || NoteSchema::Tone {
+            next: Rc::new(|ml, chosen| match chosen {
+                [] => vec![NoteSchema::Skip {
+                    duration: rational(1),
+                }],
+                [_] => vec![NoteSchema::Tone {
+                    harmonic: true,
+                    types: None,
+                    duration: rational(1),
+                }],
+                _ if total_duration(chosen) < ml => vec![NoteSchema::Tone {
                     harmonic: true,
                     types: Some(passing_neighbor()),
                     duration: rational(1),
-                }));
-                out
+                }],
+                _ => Vec::new(),
             }),
             cost: 0.0,
         },
         MeasureSchema {
             name: "sp3.1".to_string(),
             condition: Some(Box::new(later)),
-            notes: Box::new(|ml| {
-                let mut out = vec![NoteSchema::Tone {
+            next: Rc::new(|ml, chosen| match chosen {
+                [] => vec![NoteSchema::Tone {
                     harmonic: true,
                     types: None,
                     duration: rational(1),
-                }];
-                out.extend(repeat_notes(rational_value(ml) - 1.0, || NoteSchema::Tone {
+                }],
+                _ if total_duration(chosen) < ml => vec![NoteSchema::Tone {
                     harmonic: true,
                     types: Some(passing_neighbor()),
                     duration: rational(1),
-                }));
-                out
+                }],
+                _ => Vec::new(),
             }),
             cost: 0.0,
         },
@@ -438,55 +508,52 @@ pub fn species4() -> VoiceConstructor {
         MeasureSchema {
             name: "sp4.0".to_string(),
             condition: Some(Box::new(first)),
-            notes: Box::new(|ml| {
-                vec![
-                    NoteSchema::Skip {
-                        duration: ml / rational(2),
-                    },
-                    NoteSchema::Tone {
-                        harmonic: true,
-                        types: None,
-                        duration: ml / rational(2),
-                    },
-                ]
+            next: Rc::new(|ml, chosen| match chosen {
+                [] => vec![NoteSchema::Skip {
+                    duration: ml / rational(2),
+                }],
+                [_] => vec![NoteSchema::Tone {
+                    harmonic: true,
+                    types: None,
+                    duration: ml / rational(2),
+                }],
+                _ => Vec::new(),
             }),
             cost: 0.0,
         },
         MeasureSchema {
             name: "sp4.1".to_string(),
             condition: Some(Box::new(later)),
-            notes: Box::new(|ml| {
-                vec![
-                    NoteSchema::Tone {
-                        harmonic: false,
-                        types: Some(vec![NonHarmonicType::Suspension]),
-                        duration: ml / rational(2),
-                    },
-                    NoteSchema::Tone {
-                        harmonic: true,
-                        types: None,
-                        duration: ml / rational(2),
-                    },
-                ]
+            next: Rc::new(|ml, chosen| match chosen {
+                [] => vec![NoteSchema::Tone {
+                    harmonic: false,
+                    types: Some(vec![NonHarmonicType::Suspension]),
+                    duration: ml / rational(2),
+                }],
+                [_] => vec![NoteSchema::Tone {
+                    harmonic: true,
+                    types: None,
+                    duration: ml / rational(2),
+                }],
+                _ => Vec::new(),
             }),
             cost: 0.0,
         },
         MeasureSchema {
             name: "sp4.2".to_string(),
             condition: Some(Box::new(later)),
-            notes: Box::new(|ml| {
-                vec![
-                    NoteSchema::Tone {
-                        harmonic: true,
-                        types: None,
-                        duration: ml / rational(2),
-                    },
-                    NoteSchema::Tone {
-                        harmonic: true,
-                        types: Some(passing_neighbor()),
-                        duration: ml / rational(2),
-                    },
-                ]
+            next: Rc::new(|ml, chosen| match chosen {
+                [] => vec![NoteSchema::Tone {
+                    harmonic: true,
+                    types: None,
+                    duration: ml / rational(2),
+                }],
+                [_] => vec![NoteSchema::Tone {
+                    harmonic: true,
+                    types: Some(passing_neighbor()),
+                    duration: ml / rational(2),
+                }],
+                _ => Vec::new(),
             }),
             cost: 500.0,
         },
@@ -511,19 +578,23 @@ pub fn species5() -> VoiceConstructor {
         //     condition: Some(Box::new(|c, s| {
         //         later(c, s) && s.voices.len() > 2 && vdiff(c, s, "sp5.1")
         //     })),
-        //     notes: Box::new(|ml| {
-        //         vec![NoteSchema::Tone {
-        //             harmonic: true,
-        //             types: None,
-        //             duration: ml,
-        //         }]
+        //     next: Rc::new(|ml, chosen| {
+        //         if chosen.is_empty() {
+        //             vec![NoteSchema::Tone {
+        //                 harmonic: true,
+        //                 types: None,
+        //                 duration: ml,
+        //             }]
+        //         } else {
+        //             Vec::new()
+        //         }
         //     }),
         //     cost: 0.0,
         // },
         MeasureSchema {
             name: "sp5.2.0".to_string(),
             condition: Some(Box::new(|c, s| first(c, s) && vdiff(c, s, "sp5.2.0"))),
-            notes: Box::new(|ml| {
+            next: fixed_schema(|ml| {
                 vec![
                     NoteSchema::Skip {
                         duration: ml / rational(2),
@@ -538,28 +609,9 @@ pub fn species5() -> VoiceConstructor {
             cost: 0.0,
         },
         MeasureSchema {
-            name: "sp5.2.1".to_string(),
-            condition: Some(Box::new(|c, s| later(c, s) && vdiff(c, s, "sp5.2.1"))),
-            notes: Box::new(|ml| {
-                vec![
-                    NoteSchema::Tone {
-                        harmonic: true,
-                        types: None,
-                        duration: ml / rational(2),
-                    },
-                    NoteSchema::Tone {
-                        harmonic: true,
-                        types: Some(passing_neighbor()),
-                        duration: ml / rational(2),
-                    },
-                ]
-            }),
-            cost: 0.0,
-        },
-        MeasureSchema {
             name: "sp5.3.0".to_string(),
             condition: Some(Box::new(|c, s| first(c, s) && vdiff(c, s, "sp5.3.0"))),
-            notes: Box::new(|ml| {
+            next: fixed_schema(|ml| {
                 let mut out = vec![
                     NoteSchema::Skip {
                         duration: rational(1),
@@ -580,9 +632,28 @@ pub fn species5() -> VoiceConstructor {
             cost: 0.0,
         },
         MeasureSchema {
+            name: "sp5.2.1".to_string(),
+            condition: Some(Box::new(|c, s| later(c, s) && vdiff(c, s, "sp5.2.1"))),
+            next: fixed_schema(|ml| {
+                vec![
+                    NoteSchema::Tone {
+                        harmonic: true,
+                        types: None,
+                        duration: ml / rational(2),
+                    },
+                    NoteSchema::Tone {
+                        harmonic: true,
+                        types: Some(passing_neighbor()),
+                        duration: ml / rational(2),
+                    },
+                ]
+            }),
+            cost: 0.0,
+        },
+        MeasureSchema {
             name: "sp5.3.1".to_string(),
             condition: Some(Box::new(|c, s| later(c, s) && vdiff(c, s, "sp5.3.1"))),
-            notes: Box::new(|ml| {
+            next: fixed_schema(|ml| {
                 let mut out = vec![NoteSchema::Tone {
                     harmonic: true,
                     types: Some(vec![NonHarmonicType::Suspension]),
@@ -600,7 +671,7 @@ pub fn species5() -> VoiceConstructor {
         MeasureSchema {
             name: "sp5.4.1".to_string(),
             condition: Some(Box::new(|c, s| later(c, s) && vdiff(c, s, "sp5.4.1"))),
-            notes: Box::new(|ml| {
+            next: fixed_schema(|ml| {
                 vec![
                     NoteSchema::Tone {
                         harmonic: false,
@@ -619,7 +690,7 @@ pub fn species5() -> VoiceConstructor {
         MeasureSchema {
             name: "sp5.5.1".to_string(),
             condition: Some(Box::new(|c, s| later(c, s) && vdiff(c, s, "sp5.5.1"))),
-            notes: Box::new(|ml| {
+            next: fixed_schema(|ml| {
                 let mut out = vec![NoteSchema::Tone {
                     harmonic: true,
                     types: Some(vec![NonHarmonicType::Suspension]),
@@ -637,7 +708,7 @@ pub fn species5() -> VoiceConstructor {
         MeasureSchema {
             name: "sp5.5.2".to_string(),
             condition: Some(Box::new(|c, s| later(c, s) && vdiff(c, s, "sp5.5.2"))),
-            notes: Box::new(|ml| {
+            next: fixed_schema(|ml| {
                 let mut out = vec![NoteSchema::Tone {
                     harmonic: true,
                     types: None,
@@ -660,7 +731,7 @@ pub fn species5() -> VoiceConstructor {
         MeasureSchema {
             name: "sp5.5.4".to_string(),
             condition: Some(Box::new(|c, s| later(c, s) && vdiff(c, s, "sp5.5.4"))),
-            notes: Box::new(|ml| {
+            next: fixed_schema(|ml| {
                 let v = rational_value(ml);
                 let d1 = (v * 3.0 / 4.0).floor();
                 let n = v - d1;

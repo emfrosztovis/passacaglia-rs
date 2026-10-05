@@ -12,7 +12,7 @@ use crate::clef::Clef;
 use crate::context::CounterpointContext;
 use crate::imitation::ImitationMeasure;
 use crate::score::Score;
-use crate::species::{FakeMeasure, MeasureSchema, NoteSchema, SpeciesMeasure};
+use crate::species::{note_total, FakeMeasure, MeasureSchema, NoteSchema, SpeciesMeasure};
 
 /// The kind of non-harmonic tone that a note can be.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -116,7 +116,13 @@ impl Measure {
                     self.notes[i].pitch.is_none()
                         && matches!(sm.note_schema.get(i), Some(NoteSchema::Tone { .. }))
                 });
-                idx.map(|i| note_start(&self.notes, i))
+                idx.map_or_else(
+                    || {
+                        let total = note_total(&self.notes);
+                        (total < sm.ctx.parameters.measure_length).then_some(total)
+                    },
+                    |i| Some(note_start(&self.notes, i)),
+                )
             }
             MeasureKind::Imitation(im) => match im {
                 ImitationMeasure::Empty { .. } => None,
