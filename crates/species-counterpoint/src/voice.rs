@@ -12,7 +12,7 @@ use crate::clef::Clef;
 use crate::context::CounterpointContext;
 use crate::imitation::ImitationMeasure;
 use crate::score::Score;
-use crate::species::{note_total, FakeMeasure, MeasureSchema, NoteSchema, SpeciesMeasure};
+use crate::species::{FakeMeasure, MeasureSchema, NoteSchema, SpeciesMeasure, given_total};
 
 /// The kind of non-harmonic tone that a note can be.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -112,13 +112,11 @@ impl Measure {
             MeasureKind::Blank | MeasureKind::Fake(_) => Some(rational(0)),
             MeasureKind::Fixed => None,
             MeasureKind::Species(sm) => {
-                let idx = (0..self.notes.len()).find(|&i| {
-                    self.notes[i].pitch.is_none()
-                        && matches!(sm.note_schema.get(i), Some(NoteSchema::Tone { .. }))
-                });
+                let idx = sm.note_schema.iter().zip(self.notes.iter())
+                    .position(|(a, b)| matches!(a, NoteSchema::Tone { .. }) && b.pitch.is_none());
                 idx.map_or_else(
                     || {
-                        let total = note_total(&self.notes);
+                        let total = given_total(&sm.note_schema);
                         (total < sm.ctx.parameters.measure_length).then_some(total)
                     },
                     |i| Some(note_start(&self.notes, i)),
@@ -246,7 +244,7 @@ pub struct FixedVoice {
 /// How a counterpoint voice generates its next measure.
 #[derive(Clone)]
 pub enum VoiceKind {
-    Species { schemas: Rc<[MeasureSchema]> },
+    Species { name: String, schemas: Rc<[MeasureSchema]> },
     Imitation { target_voice: usize, delay: i64, transform: Rc<dyn Fn(Pitch) -> Vec<Pitch>> },
 }
 
@@ -289,7 +287,7 @@ impl CounterpointVoice {
     #[must_use]
     pub fn make_new_measure<'a>(&self, score: &'a Score, c: MeasureCursor<'a>) -> Vec<NewMeasure> {
         match &self.kind {
-            VoiceKind::Species { schemas } => {
+            VoiceKind::Species { schemas, .. } => {
                 crate::species::species_make_new_measure(self, schemas, score, c)
             }
             VoiceKind::Imitation {

@@ -28,6 +28,8 @@ use axum::{
     routing::get,
 };
 
+use passacaglia_species_counterpoint::Voice;
+use passacaglia_species_counterpoint::voice::{CounterpointVoice, VoiceKind};
 use tree::{serve_tree_queries, tree_meta, tree_node, tree_score, TreeQuery};
 use futures_util::{Stream, StreamExt, stream};
 #[allow(unused_imports)]
@@ -212,7 +214,7 @@ fn run_solver(
     tree_rx: std::sync::mpsc::Receiver<TreeQuery>,
 ) {
     let mut ctx = CounterpointContext::new(
-        12,
+        8,
         Parameters { measure_length: rational(4), },
     );
 
@@ -223,6 +225,11 @@ fn run_solver(
     ];
 
     ctx.local_rules = vec![
+        rules::avoid_consecutive_measures_with_same_rhythm(|v| {
+            if let Voice::Counterpoint(
+                CounterpointVoice { kind: VoiceKind::Species { name, .. }, .. }
+            ) = v { name == "sp5" } else { false }
+        }),
         rules::limit_consecutive_leaps(),
         rules::forbid_perfects_by_similar_motion(),
         rules::forbid_nearby_perfects(),
@@ -253,18 +260,9 @@ fn run_solver(
     ];
 
     ctx.non_harmonic_tone_rules = HashMap::from([
-        (
-            NonHarmonicType::Neighbor,
-            vec![rules::make_neighbor_tone()],
-        ),
-        (
-            NonHarmonicType::PassingTone,
-            vec![rules::make_passing_tone()],
-        ),
-        (
-            NonHarmonicType::Suspension,
-            vec![rules::make_suspension()],
-        ),
+        (NonHarmonicType::Neighbor, vec![rules::make_neighbor_tone()]),
+        (NonHarmonicType::PassingTone, vec![rules::make_passing_tone()]),
+        (NonHarmonicType::Suspension, vec![rules::make_suspension()]),
     ]);
 
     ctx.allow_unison = true;
@@ -274,7 +272,7 @@ fn run_solver(
     let score = CounterpointScoreBuilder::new(ctx.clone())
         .soprano(&species5())
         .alto(&species5())
-        .tenor(&species5())
+        // .tenor(&species5())
         .bass(&species5())
 
         .build(&scales::major(pitch!("c")), None)
@@ -295,7 +293,7 @@ fn run_solver(
     solver.batch = 50;
     solver.remove_old = 4;
 
-    let reward = 5.0;
+    let reward = 4.0;
     let solution = solver.run(&score, 
         CounterpointSolverRewardStrategy::Constant { value: reward  });
 

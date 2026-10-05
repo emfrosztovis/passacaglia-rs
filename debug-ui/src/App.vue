@@ -137,11 +137,7 @@ onUnmounted(() => {
         </template>
     </div>
 
-    <div v-else-if="noSolution" class="standby">
-        <p>no solution found</p>
-    </div>
-
-    <NProgress v-else-if="!source" type="multiple-circle" :percentage="[
+    <NProgress v-else-if="!source && !noSolution" type="multiple-circle" :percentage="[
         progress.furthest / progress.total * 100,
         progress.progress / progress.total * 100,
     ]">
@@ -159,6 +155,7 @@ onUnmounted(() => {
         <div class="content">
             <div class="score-panel" :style="{ height: `${scoreHeight}px` }">
                 <MusicScore v-if="displaySource" :file="displaySource" />
+                <p v-else-if="noSolution" class="hint">no solution found</p>
             </div>
             <div class="resizer" @pointerdown="onResizeStart"></div>
             <div class="tree-panel">

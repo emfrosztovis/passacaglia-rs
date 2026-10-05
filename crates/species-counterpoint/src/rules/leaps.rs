@@ -54,10 +54,9 @@ pub fn limit_consecutive_leaps() -> LocalRule {
             return 0.0;
         };
         if m.n_consecutive_leaps - m.n3rd_leaps.min(settings.max_ignorable_3rd_leaps)
-            > settings.max_consecutive_leaps
+                > settings.max_consecutive_leaps
             || m.n_unidirectional_consecutive_leaps
-                - m.n_unidirectional_3rd_leaps
-                    .min(settings.max_unidirectional_ignorable_3rd_leaps)
+                - m.n_unidirectional_3rd_leaps.min(settings.max_unidirectional_ignorable_3rd_leaps)
                 > settings.max_unidirectional_consecutive_leaps
         {
             return f64::INFINITY;

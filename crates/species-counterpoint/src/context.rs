@@ -277,7 +277,7 @@ impl CounterpointContext {
         let candidates = self.get_candidates(rules, s, note, ty);
 
         let mut steps = Vec::new();
-        for (p, cost) in candidates.iter() {
+        'outer: for (p, cost) in candidates.iter() {
             let p = *p;
             let m = create(Note::new(note.span(), Some(p), ty), p);
             let new_voice = voice.replace_measure(measure.index(), m.clone());
@@ -290,6 +290,7 @@ impl CounterpointContext {
             let mut debug = Vec::new();
             for rule in &self.local_rules {
                 let c = rule(self, &new_score, new_cursor);
+                if c == f64::INFINITY { continue 'outer; }
                 cost += c;
                 if c != 0.0 {
                     debug.push(format!("{c}"));
@@ -299,7 +300,7 @@ impl CounterpointContext {
                 measure: m,
                 cost: cost + cost_offset,
                 advanced: note.span(),
-                debug: debug.join("\n"),
+                debug: debug.join(";"),
                 score: Some(new_score),
             });
         }

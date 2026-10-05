@@ -14,6 +14,7 @@ mod suspension;
 mod valid_chords;
 mod functional_harmony;
 mod root_progression;
+mod rhythm;
 
 pub use voice_motion::prioritize_voice_motion;
 pub use voice_overlapping::forbid_voice_overlapping2;
@@ -32,3 +33,4 @@ pub use suspension::{enforce_suspension, make_suspension};
 pub use valid_chords::{enforce_chord_tone, enforce_fixed_progression, enforce_valid_chords};
 pub use functional_harmony::{enforce_functional_progression_major, enforce_functional_progression_minor};
 pub use root_progression::enforce_root_progression;
+pub use rhythm::avoid_consecutive_measures_with_same_rhythm;

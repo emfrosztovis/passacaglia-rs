@@ -102,7 +102,7 @@ async function expand(id: number) {
       const total = meta.value?.targetMeasures ?? 1;
       const threshold = Math.min(data.subtreeSize * 0.6, (meta.value?.nodeCount ?? 0) * 0.01);
       const bigChildren = data.children.filter(
-        (x) => x.maxMeasureIndex == total || x.subtreeSize > threshold);
+        (x) => /*x.maxMeasureIndex == total || */ x.subtreeSize > threshold);
       for (const bigChild of bigChildren) {
         await expand(bigChild.id);
       }
