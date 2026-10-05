@@ -91,7 +91,7 @@ pub fn avoid_stagnation() -> LocalRule {
             let steps = lo.interval_to(&hi).steps;
             if steps > 3 { break; }
 
-            cost += (f64::from(i) / (steps as f64) - 2.0).max(0.0) * 10.0;
+            cost += (f64::from(i) / (steps as f64) - 2.0).max(0.0) * 20.0;
 
             // if i == 5 && steps <= 1
             //     || i == 9 && steps <= 2

@@ -235,41 +235,9 @@ fn later(c: MeasureCursor<'_>, _s: &Score) -> bool {
     c.index() > 0
 }
 
-fn hdiff(c: MeasureCursor<'_>, name: &str) -> bool {
-    c.prev_global()
-        .is_none_or(|p| p.schema_name() != Some(name))
-}
-
-fn vdiff(c: MeasureCursor<'_>, score: &Score, name: &str) -> bool {
-    if !hdiff(c, name) {
-        return false;
-    }
-    let mut total = 0usize;
-    let mut same = 0usize;
-    for v in &score.voices {
-        if let Some(m) = v.measures().get(c.index())
-            && let Some(sn) = m.schema_name()
-        {
-            if sn == name {
-                same += 1;
-            }
-            total += 1;
-        }
-    }
-    if total > 0 && same > total - 1 {
-        return false;
-    }
-    true
-}
-
 fn repeat_notes(n: f64, f: impl Fn() -> NoteSchema) -> Vec<NoteSchema> {
     let count = n.ceil().max(0.0) as usize;
     (0..count).map(|_| f()).collect()
-}
-
-#[must_use]
-fn total_duration(chosen: &[NoteSchema]) -> Rational {
-    chosen.iter().fold(rational(0), |acc, n| acc + n.duration())
 }
 
 /// Adapts a `measure length -> full note schema` function into a positional
@@ -391,7 +359,7 @@ pub fn species3() -> VoiceConstructor {
                     types: None,
                     duration: rational(1),
                 }],
-                _ if total_duration(chosen) < ml => vec![NoteSchema::Tone {
+                _ if given_total(chosen) < ml => vec![NoteSchema::Tone {
                     harmonic: true,
                     types: Some(passing_neighbor()),
                     duration: rational(1),
@@ -409,7 +377,7 @@ pub fn species3() -> VoiceConstructor {
                     types: None,
                     duration: rational(1),
                 }],
-                _ if total_duration(chosen) < ml => vec![NoteSchema::Tone {
+                _ if given_total(chosen) < ml => vec![NoteSchema::Tone {
                     harmonic: true,
                     types: Some(passing_neighbor()),
                     duration: rational(1),
@@ -513,31 +481,43 @@ pub fn species5() -> VoiceConstructor {
                     return vec![
                         NoteSchema::Tone {
                             harmonic: true,
-                            types: None,
+                            types: Some(vec![NonHarmonicType::Suspension]),
                             duration: rational(1),
                         },
                         NoteSchema::Tone {
                             harmonic: true,
+                            types: Some(vec![NonHarmonicType::Suspension]),
+                            duration: ml / rational(2),
+                        },
+                        NoteSchema::Tone {
+                            harmonic: true,
                             types: None,
-                            duration: ml / rational(2),
+                            duration: (ml * Rational::new(3, 4)).floor(),
                         },
                         NoteSchema::Tone {
-                            harmonic: false,
-                            types: Some(vec![NonHarmonicType::Suspension]),
-                            duration: rational(1),
+                            harmonic: true,
+                            types: None,
+                            duration: ml,
                         },
-                        NoteSchema::Tone {
-                            harmonic: false,
-                            types: Some(vec![NonHarmonicType::Suspension]),
-                            duration: ml / rational(2),
-                        },
-                        // NoteSchema::Tone {
-                        //     harmonic: true,
-                        //     types: None,
-                        //     duration: ml,
-                        // },
                     ];
                 }
+
+                if !t.is_integer() {
+                    return vec![NoteSchema::Tone {
+                        harmonic: true,
+                        types: Some(passing_neighbor()),
+                        duration: Rational::new(1, 2),
+                    }];
+                }
+                
+                if t >= ml - rational(1) || t * 2 < ml && (t + rational(1)) * 2 >= ml {
+                    result.push(NoteSchema::Tone {
+                        harmonic: true,
+                        types: Some(passing_neighbor()),
+                        duration: Rational::new(1, 2),
+                    });
+                }
+
                 result.push(NoteSchema::Tone {
                     harmonic: true,
                     types: Some(passing_neighbor()),
@@ -556,7 +536,7 @@ pub fn species5() -> VoiceConstructor {
         },
         MeasureSchema {
             name: "sp5.2.0".to_string(),
-            condition: Some(Box::new(|c, s| first(c, s) && vdiff(c, s, "sp5.2.0"))),
+            condition: Some(Box::new(first)),
             next: fixed_schema(|ml| {
                 vec![
                     NoteSchema::Skip {
@@ -573,7 +553,7 @@ pub fn species5() -> VoiceConstructor {
         },
         MeasureSchema {
             name: "sp5.3.0".to_string(),
-            condition: Some(Box::new(|c, s| first(c, s) && vdiff(c, s, "sp5.3.0"))),
+            condition: Some(Box::new(first)),
             next: fixed_schema(|ml| {
                 let mut out = vec![
                     NoteSchema::Skip {

@@ -219,18 +219,21 @@ fn run_solver(
     );
 
     ctx.harmony_rules = vec![
-        // rules::enforce_functional_progression_major(),
-        rules::enforce_functional_progression_minor(),
+        rules::enforce_functional_progression_major(),
+        // rules::enforce_functional_progression_minor(),
         rules::enforce_valid_chords(),
     ];
 
+    let is_sp5 = |v: &Voice| {
+        if let Voice::Counterpoint(
+            CounterpointVoice { kind: VoiceKind::Species { name, .. }, .. }
+        ) = v { name == "sp5" } else { false }
+    };
+
     ctx.local_rules = vec![
-        // rules::avoid_consecutive_measures_with_same_rhythm(|v| {
-        //     if let Voice::Counterpoint(
-        //         CounterpointVoice { kind: VoiceKind::Species { name, .. }, .. }
-        //     ) = v { name == "sp5" } else { false }
-        // }),
-        // rules::avoid_stagnation(),
+        rules::avoid_consecutive_measures_with_same_rhythm(is_sp5),
+        rules::avoid_same_rhythm_in_verticality(is_sp5),
+        rules::avoid_stagnation(),
         rules::limit_consecutive_leaps(),
         rules::forbid_perfects_by_similar_motion(),
         rules::forbid_nearby_perfects(),
@@ -240,7 +243,7 @@ fn run_solver(
 
     ctx.candidate_rules_before = vec![
         rules::enforce_scale_tones(),
-        rules::enforce_minor(pitch!("a")),
+        // rules::enforce_minor(pitch!("a")),
         rules::enforce_stepwise_around_short_notes(),
         rules::enforce_passing_tones(),
         rules::enforce_neighbor_tones(),
@@ -270,7 +273,7 @@ fn run_solver(
     let ctx = Rc::new(ctx);
 
     let score = CounterpointScoreBuilder::new(ctx.clone())
-        // .soprano(&species5())
+        .soprano(&species5())
         // .alto(&define_imitation(
         //     MelodicSettings::unrestricted(), 
         //     0, 1, |x| {
@@ -280,12 +283,12 @@ fn run_solver(
         //             x.add(&interval!("-A5")),
         //         ]
         //     }))
-        .tenor(&species4())
-        // // .bass(&species2())
+        .alto(&species1())
+        .tenor(&species1())
         .bass(&species1())
 
-        // .build(&scales::major(pitch!("c")), None)
-        .build(&scales::minor(pitch!("a")), None)
+        .build(&scales::major(pitch!("c")), None)
+        // .build(&scales::minor(pitch!("a")), None)
     ;
 
     let mut solver = CounterpointSolver::new(ctx.clone());
@@ -299,10 +302,10 @@ fn run_solver(
     });
 
     solver.report_interval = 1000;
-    solver.batch = 100;
+    solver.batch = 60;
     solver.remove_old = 6;
 
-    let reward = 8.0;
+    let reward = 4.0;
     let solution = solver.run(&score, 
         CounterpointSolverRewardStrategy::Constant { value: reward  });
 

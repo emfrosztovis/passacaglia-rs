@@ -123,7 +123,7 @@ pub fn enforce_directional_degree_matrix(m: DegreeMatrix) -> CandidateRule {
 /// implement scales with alternate tones)
 #[must_use]
 pub fn enforce_minor(root: Pitch) -> CandidateRule {
-    Rc::new(move |_ctx, _s, cur, c, ty| {
+    Rc::new(move |_ctx, s, cur, c, ty| {
         let voice = cur.parent().container();
         let scale = scales::minor(root);
 
@@ -168,17 +168,19 @@ pub fn enforce_minor(root: Pitch) -> CandidateRule {
                 c.filter(|x, _| *x == target);
             }
 
-            // // G must go to F
-            // if d1.index == 6 && d1.acci == rational(0) {
-            //     let target = p1.add(&interval!("-M2"));
-            //     c.filter(|x, _| *x == target);
-            // }
+            if voice.index() == 0 || voice.index() == s.voices.len() - 1 {
+                // G must go to F
+                if d1.index == 6 && d1.acci == rational(0) {
+                    let target = p1.add(&interval!("-M2"));
+                    c.filter(|x, _| *x == target);
+                }
 
-            // // F must go to E
-            // if d1.index == 5 && d1.acci == rational(0) {
-            //     let target = p1.add(&interval!("-m2"));
-            //     c.filter(|x, _| *x == target);
-            // }
+                // F must go to E
+                if d1.index == 5 && d1.acci == rational(0) {
+                    let target = p1.add(&interval!("-m2"));
+                    c.filter(|x, _| *x == target);
+                }
+            }
         }
         c
     })

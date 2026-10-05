@@ -33,4 +33,4 @@ pub use suspension::{enforce_suspension, make_suspension};
 pub use valid_chords::{enforce_chord_tone, enforce_fixed_progression, enforce_valid_chords};
 pub use functional_harmony::{enforce_functional_progression_major, enforce_functional_progression_minor};
 pub use root_progression::enforce_root_progression;
-pub use rhythm::avoid_consecutive_measures_with_same_rhythm;
+pub use rhythm::{avoid_consecutive_measures_with_same_rhythm, avoid_same_rhythm_in_verticality};

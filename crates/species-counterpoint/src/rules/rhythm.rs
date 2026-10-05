@@ -31,3 +31,29 @@ pub fn avoid_consecutive_measures_with_same_rhythm(
         // cost
     })
 }
+
+/// Avoid the same rhythm in different voices.
+#[must_use]
+pub fn avoid_same_rhythm_in_verticality(
+    pred: impl Fn(&Voice) -> bool + 'static
+) -> LocalRule {
+    Rc::new(move |_ctx, s, cur| {
+        let measure = cur.parent();
+        let v = measure.container();
+        if !pred(v) { return 0.0; }
+
+        let mut cost = 0.0;
+        for voice in &s.voices {
+            if voice.index() == v.index() { continue; }
+
+            let Some(m) = voice.cursor(measure.index()) else { continue; };
+            for (a, b) in m.notes.iter().zip(measure.notes.iter()) {
+                if a.pitch.is_none() || b.pitch.is_none() { continue; }
+                if a.duration != b.duration { continue; }
+                cost += 10.0 * rational_value(a.duration);
+            }
+        }
+
+        cost
+    })
+}
