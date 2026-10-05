@@ -63,15 +63,6 @@ pub struct SpeciesMeasure {
     pub next: Rc<NoteSchemaNext>,
 }
 
-/// A transient measure that expands into concrete species measures.
-#[derive(Clone)]
-pub struct FakeMeasure {
-    pub ctx: Rc<CounterpointContext>,
-    pub melodic_context: MelodicContext,
-    pub candidates: Rc<[FakeCandidate]>,
-    pub p0: Pitch,
-}
-
 #[derive(Clone)]
 pub struct FakeCandidate {
     pub name: String,
@@ -207,30 +198,6 @@ pub(crate) fn given_total(notes: &[NoteSchema]) -> Rational {
     notes.iter().map(NoteSchema::duration).sum()
 }
 
-pub(crate) fn fake_get_next_steps(fm: &FakeMeasure) -> Vec<Step> {
-    fm.candidates
-        .iter()
-        .map(|fc| {
-            let first = Note::new(fc.note_schema[0].duration(), Some(fm.p0), None);
-            let measure = make_species_measure(
-                fm.ctx.clone(),
-                fm.melodic_context,
-                fc.name.clone(),
-                fc.next.clone(),
-                fc.note_schema.clone(),
-                vec![first],
-            );
-            Step {
-                measure,
-                advanced: rational(1),
-                cost: fc.cost,
-                debug: "from_fake".to_string(),
-                score: None,
-            }
-        })
-        .collect()
-}
-
 pub(crate) fn species_make_new_measure<'a>(
     cp: &crate::voice::CounterpointVoice,
     schemas: &[MeasureSchema],
@@ -243,61 +210,22 @@ pub(crate) fn species_make_new_measure<'a>(
         .map_or_else(empty_melodic_context, |p| p.melodic_context());
 
     let mut results = Vec::new();
-    let mut fake_candidates: Vec<FakeCandidate> = Vec::new();
-
-    for s in schemas {
-        if s.condition.as_ref().is_some_and(|cond| !cond(c, score)) {
-            continue;
-        }
+    let applicable = schemas.iter()
+        .filter(|s| s.condition.as_ref().is_some_and(|cond| cond(c, score)));
+    for s in applicable {
         for option in (s.next)(ml, Rational::ZERO, &[]) {
-            if matches!(option, NoteSchema::Tone { harmonic: true, .. }) {
-                fake_candidates.push(FakeCandidate {
-                    name: s.name.clone(),
-                    note_schema: Rc::from(vec![option]),
-                    next: s.next.clone(),
-                    cost: s.cost,
-                });
-            } else {
-                results.push(NewMeasure {
-                    measure: make_species_measure(
-                        cp.ctx.clone(),
-                        mc,
-                        s.name.clone(),
-                        s.next.clone(),
-                        Rc::from(vec![option]),
-                        vec![],
-                    ),
-                    cost: s.cost,
-                });
-            }
+            results.push(NewMeasure {
+                measure: make_species_measure(
+                    cp.ctx.clone(),
+                    mc,
+                    s.name.clone(),
+                    s.next.clone(),
+                    Rc::from(vec![option]),
+                    vec![],
+                ),
+                cost: s.cost,
+            });
         }
-    }
-
-    if !fake_candidates.is_empty() {
-        let fake_candidates: Rc<[FakeCandidate]> = Rc::from(fake_candidates);
-        let voice = c.container();
-        let fake_cursor = voice.note_at(c.global_time()).expect("fake cursor exists");
-        let create = move |_note: Note, p: Pitch| -> Measure {
-            Measure {
-                notes: Rc::from(vec![Note::new(ml, Some(p), None)]),
-                duration: ml,
-                kind: MeasureKind::Fake(FakeMeasure {
-                    ctx: cp.ctx.clone(),
-                    melodic_context: mc,
-                    candidates: fake_candidates.clone(),
-                    p0: p,
-                }),
-            }
-        };
-        results.extend(
-            cp.ctx
-                .fill_harmonic_tone(score, fake_cursor, &create, 0.0)
-                .into_iter()
-                .map(|step| NewMeasure {
-                    measure: step.measure,
-                    cost: step.cost,
-                }),
-        );
     }
 
     results

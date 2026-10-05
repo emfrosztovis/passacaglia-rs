@@ -219,8 +219,8 @@ fn run_solver(
     );
 
     ctx.harmony_rules = vec![
-        rules::enforce_functional_progression_major(),
-        // rules::enforce_functional_progression_minor(),
+        // rules::enforce_functional_progression_major(),
+        rules::enforce_functional_progression_minor(),
         rules::enforce_valid_chords(),
     ];
 
@@ -239,7 +239,7 @@ fn run_solver(
 
     ctx.candidate_rules_before = vec![
         rules::enforce_scale_tones(),
-        // rules::enforce_minor(pitch!("a")),
+        rules::enforce_minor(pitch!("a")),
         rules::enforce_stepwise_around_short_notes(),
         rules::enforce_passing_tones(),
         rules::enforce_neighbor_tones(),
@@ -272,11 +272,11 @@ fn run_solver(
     let score = CounterpointScoreBuilder::new(ctx.clone())
         .soprano(&species5())
         .alto(&species5())
-        // .tenor(&species5())
+        .tenor(&species5())
         .bass(&species5())
 
-        .build(&scales::major(pitch!("c")), None)
-        // .build(&scales::minor(pitch!("a")), None)
+        // .build(&scales::major(pitch!("c")), None)
+        .build(&scales::minor(pitch!("a")), None)
     ;
 
     let mut solver = CounterpointSolver::new(ctx.clone());
@@ -293,7 +293,7 @@ fn run_solver(
     solver.batch = 50;
     solver.remove_old = 4;
 
-    let reward = 4.0;
+    let reward = 6.0;
     let solution = solver.run(&score, 
         CounterpointSolverRewardStrategy::Constant { value: reward  });
 

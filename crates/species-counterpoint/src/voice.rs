@@ -12,7 +12,7 @@ use crate::clef::Clef;
 use crate::context::CounterpointContext;
 use crate::imitation::ImitationMeasure;
 use crate::score::Score;
-use crate::species::{FakeMeasure, MeasureSchema, NoteSchema, SpeciesMeasure, given_total};
+use crate::species::{MeasureSchema, NoteSchema, SpeciesMeasure, given_total};
 
 /// The kind of non-harmonic tone that a note can be.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -92,7 +92,6 @@ pub enum MeasureKind {
     Blank,
     Fixed,
     Species(SpeciesMeasure),
-    Fake(FakeMeasure),
     Imitation(ImitationMeasure),
 }
 
@@ -109,7 +108,7 @@ impl Measure {
     #[must_use]
     pub fn writable_position(&self) -> Option<Rational> {
         match &self.kind {
-            MeasureKind::Blank | MeasureKind::Fake(_) => Some(rational(0)),
+            MeasureKind::Blank => Some(rational(0)),
             MeasureKind::Fixed => None,
             MeasureKind::Species(sm) => {
                 let idx = sm.note_schema.iter().zip(self.notes.iter())
@@ -139,7 +138,6 @@ impl Measure {
     pub fn melodic_context(&self) -> MelodicContext {
         match &self.kind {
             MeasureKind::Species(sm) => sm.melodic_context,
-            MeasureKind::Fake(fm) => fm.melodic_context,
             MeasureKind::Imitation(im) => match im {
                 ImitationMeasure::Empty { melodic_context, .. }
                 | ImitationMeasure::Filled { melodic_context, .. } => *melodic_context,
@@ -191,7 +189,6 @@ impl Measure {
             }
             MeasureKind::Fixed => Vec::new(),
             MeasureKind::Species(sm) => crate::species::species_get_next_steps(self, sm, s, c),
-            MeasureKind::Fake(fm) => crate::species::fake_get_next_steps(fm),
             MeasureKind::Imitation(im) => crate::imitation::imitation_get_next_steps(self, im, s, c),
         }
     }
@@ -460,7 +457,6 @@ fn measure_kind_eq(a: &MeasureKind, b: &MeasureKind) -> bool {
         (MeasureKind::Species(x), MeasureKind::Species(y)) => {
             x.name == y.name && x.note_schema == y.note_schema
         }
-        (MeasureKind::Fake(x), MeasureKind::Fake(y)) => x.p0 == y.p0,
         (MeasureKind::Imitation(x), MeasureKind::Imitation(y)) => imitation_eq(x, y),
         _ => false,
     }
@@ -474,10 +470,6 @@ fn measure_kind_hash<H: Hasher>(kind: &MeasureKind, state: &mut H) {
             2u8.hash(state);
             sm.name.hash(state);
             sm.note_schema.hash(state);
-        }
-        MeasureKind::Fake(fm) => {
-            3u8.hash(state);
-            fm.p0.hash(state);
         }
         MeasureKind::Imitation(im) => imitation_hash(im, state),
     }

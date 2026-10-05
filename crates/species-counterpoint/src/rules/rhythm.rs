@@ -3,7 +3,7 @@ use std::rc::Rc;
 use passacaglia_common::rational_value;
 use passacaglia_core::structure::Container;
 
-use crate::{LocalRule, Voice, voice::MeasureKind};
+use crate::{LocalRule, Voice};
 
 /// Avoid consecutive measures with the same rhythm. Only applies to voices selected by a predicate.
 #[must_use]
@@ -12,7 +12,6 @@ pub fn avoid_consecutive_measures_with_same_rhythm(
 ) -> LocalRule {
     Rc::new(move |_ctx, _s, cur| {
         let measure = cur.parent();
-        if let MeasureKind::Fake(_) = measure.kind { return 0.0; }
         // only check at the end of a measure
         // if cur.global_end_time() != measure.global_end_time() { return 0.0; }
 
